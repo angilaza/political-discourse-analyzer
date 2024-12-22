@@ -4,7 +4,7 @@ from pathlib import Path
 
 class AISettings(BaseModel):
     openai_api_key: Optional[str] = Field(None, description="OpenAI API key")
-    model: str = Field(default="gpt-4o", description="Modelo a utilizar")
+    model: str = Field(default="gpt-4", description="Modelo a utilizar")
 
 class DatabaseSettings(BaseModel):
     path: Path = Field(
@@ -31,7 +31,7 @@ class ApplicationSettings(BaseModel):
         return cls(
             ai_settings=AISettings(
                 openai_api_key=openai_api_key,
-                model="gpt-4o"
+                model="gpt-4"
             ),
             db_settings=DatabaseSettings(),
             documents_path=Path("data/programs")

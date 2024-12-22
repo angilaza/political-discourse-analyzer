@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 import openai
 from political_discourse_analyzer.models.settings import ApplicationSettings
 from political_discourse_analyzer.services.assistant_service import AssistantService
-from political_discourse_analyzer.services.sqlite_service import SQLiteService
+from src.political_discourse_analyzer.services.database_service import DatabaseService
 
 class SystemDiagnostic:
     def __init__(self):

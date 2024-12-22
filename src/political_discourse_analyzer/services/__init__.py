@@ -1,7 +1,7 @@
 from .assistant_service import AssistantService
-from .sqlite_service import SQLiteService
+from .database_service import DatabaseService
 
 __all__ = [
     'AssistantService',
-    'SQLiteService'
+    'DatabaseService'
 ]

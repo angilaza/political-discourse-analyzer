@@ -6,7 +6,7 @@ from typing import List, Optional
 from dotenv import load_dotenv
 from political_discourse_analyzer.models.settings import ApplicationSettings
 from political_discourse_analyzer.services.assistant_service import AssistantService
-from political_discourse_analyzer.services.sqlite_service import SQLiteService
+from political_discourse_analyzer.services.database_service import DatabaseService
 
 # Cargar variables de entorno
 load_dotenv()
@@ -17,7 +17,7 @@ app = FastAPI(title="Political Discourse Analyzer API")
 # Configuración de CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -37,7 +37,7 @@ class SearchResponse(BaseModel):
 # Inicialización de servicios
 settings = ApplicationSettings.from_env(openai_api_key=os.getenv("OPENAI_API_KEY"))
 assistant_service = AssistantService(settings)
-db_service = SQLiteService(str(settings.db_settings.path))
+db_service = DatabaseService() 
 
 # Inicializar el servicio de asistente al arrancar
 assistant_service.init_service()
@@ -77,6 +77,9 @@ async def search_documents(query: SearchQuery):
             detail=f"Error procesando la consulta: {str(e)}"
         )
 
+# Obtener el puerto de Railway
+port = int(os.getenv("PORT", 8000))
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=port)

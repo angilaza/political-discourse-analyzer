@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 from political_discourse_analyzer.models.settings import ApplicationSettings
 from political_discourse_analyzer.services.assistant_service import AssistantService
-from political_discourse_analyzer.services.sqlite_service import SQLiteService
+from src.political_discourse_analyzer.services.database_service import DatabaseService
 
 def initialize_app():
     """
@@ -27,7 +27,7 @@ def initialize_app():
 
     # Inicializar servicios
     print("Inicializando servicios...")
-    db_service = SQLiteService(str(settings.db_settings.path))
+    db_service = DatabaseService() 
     assistant_service = AssistantService(settings)
     
     # Inicializar el servicio de asistente

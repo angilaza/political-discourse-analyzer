@@ -181,7 +181,7 @@ class AssistantService:
                     assistant_id=assistant_id,
                     name=config["name"],
                     instructions=config["instructions"],
-                    model="gpt-4o",
+                    model="gpt-4",
                     tools=[{"type": "file_search"}],
                     tool_resources={"file_search": {"vector_store_ids": [self.vector_store.id]}},
                     metadata={"mode": mode}
@@ -191,7 +191,7 @@ class AssistantService:
                 assistant = self.client.beta.assistants.create(
                     name=config["name"],
                     instructions=config["instructions"],
-                    model="gpt-4o",
+                    model="gpt-4",
                     tools=[{"type": "file_search"}],
                     tool_resources={"file_search": {"vector_store_ids": [self.vector_store.id]}},
                     metadata={"mode": mode}
