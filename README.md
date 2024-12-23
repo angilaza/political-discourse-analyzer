@@ -15,8 +15,8 @@ Esta aplicación permite a los usuarios explorar y comprender programas electora
 
 - **FastAPI**: Framework web moderno para crear APIs con Python
 - **OpenAI Assistants API**: Para procesamiento de lenguaje natural y búsqueda semántica
+- **PostgreSQL**: Base de datos principal para almacenamiento de interacciones
 - **SQLAlchemy**: ORM para gestión de base de datos
-- **PostgreSQL** (producción) / **SQLite** (desarrollo): Almacenamiento de interacciones
 
 ### Frontend (React)
 
@@ -32,6 +32,14 @@ Esta aplicación permite a los usuarios explorar y comprender programas electora
 - Poetry (gestor de dependencias)
 - Node.js y npm (para el frontend)
 
+## 🚀 Instalación
+
+### Prerrequisitos
+- Python 3.11 o superior
+- Poetry (gestor de dependencias)
+- PostgreSQL 14
+- Node.js y npm (para el frontend)
+
 ### Configuración del Entorno
 
 1. Clonar el repositorio:
@@ -41,7 +49,20 @@ git clone https://github.com/tu-usuario/political-discourse-analyzer.git
 cd political-discourse-analyzer
 ```
 
-2. Configurar el entorno Python:
+2. Configurar PostgreSQL:
+
+```bash
+# Crear usuario postgres (solo primera vez)
+createuser -s postgres
+
+# Verificar instalación
+python -m political_discourse_analyzer.utils.db_management check
+
+# Crear y configurar base de datos
+python -m political_discourse_analyzer.utils.db_management setup
+```
+
+3. Configurar el entorno Python:
 
 ```bash
 # Instalar Poetry si no está instalado
@@ -54,16 +75,33 @@ poetry install
 poetry shell
 ```
 
-3. Configurar variables de entorno:
+4. Configurar variables de entorno:
 
 ```bash
-# Crear archivo .env
 cp .env.example .env
 
-# Editar .env y añadir las variables necesarias:
+# Editar .env y añadir:
 OPENAI_API_KEY=tu_clave_api
 MODEL_NAME=gpt-4
 ENVIRONMENT=development
+DB_USER=postgres
+DB_PASSWORD=
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=political_discourse
+```
+
+### Comandos de Base de Datos
+
+```bash
+# Ver tablas existentes
+python -m political_discourse_analyzer.utils.db_management tables
+
+# Resetear base de datos
+python -m political_discourse_analyzer.utils.db_management reset
+
+# Verificar estado de PostgreSQL
+python -m political_discourse_analyzer.utils.db_management check
 ```
 
 ### Inicialización
