@@ -21,14 +21,23 @@ class AssistantService:
         # Buscar un Vector Store existente llamado "Programas Políticos"
         for vs in vector_stores.data:
             if vs.name == "Programas Políticos":
-                return vs
+                try:
+                    # Verificar si el Vector Store está activo intentando listar sus archivos
+                    self.client.beta.vector_stores.files.list(vs.id)
+                    return vs
+                except Exception:
+                    # Si hay error (ej: expirado), eliminar y continuar para crear uno nuevo
+                    try:
+                        self.client.beta.vector_stores.delete(vs.id)
+                    except Exception:
+                        pass
         
-        # Si no existe, crear nuevo Vector Store
+        # Si no existe o estaba expirado, crear nuevo Vector Store
         return self.client.beta.vector_stores.create(
             name="Programas Políticos",
             expires_after={
                 "anchor": "last_active_at",
-                "days": 30
+                "days": 90  # Aumentamos a 90 días la expiración
             }
         )
 
