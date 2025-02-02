@@ -15,31 +15,38 @@ class AssistantService:
         """
         Crea o recupera el Vector Store para los documentos políticos.
         """
-        # Listar Vector Stores existentes
-        vector_stores = self.client.beta.vector_stores.list()
-        
-        # Buscar un Vector Store existente llamado "Programas Políticos"
-        for vs in vector_stores.data:
-            if vs.name == "Programas Políticos":
-                try:
-                    # Verificar si el Vector Store está activo intentando listar sus archivos
-                    self.client.beta.vector_stores.files.list(vs.id)
-                    return vs
-                except Exception:
-                    # Si hay error (ej: expirado), eliminar y continuar para crear uno nuevo
+        try:
+            # Listar Vector Stores existentes
+            vector_stores = self.client.beta.vector_stores.list()
+            
+            # Buscar un Vector Store existente llamado "Programas Políticos"
+            for vs in vector_stores.data:
+                if vs.name == "Programas Políticos":
                     try:
-                        self.client.beta.vector_stores.delete(vs.id)
-                    except Exception:
-                        pass
-        
-        # Si no existe o estaba expirado, crear nuevo Vector Store
-        return self.client.beta.vector_stores.create(
-            name="Programas Políticos",
-            expires_after={
-                "anchor": "last_active_at",
-                "days": 90  # Aumentamos a 90 días la expiración
-            }
-        )
+                        # Verificar si el Vector Store está activo
+                        self.client.beta.vector_stores.files.list(vs.id)
+                        return vs
+                    except Exception as e:
+                        print(f"Vector Store existente expirado o inválido: {e}")
+                        try:
+                            print(f"Eliminando Vector Store expirado: {vs.id}")
+                            self.client.beta.vector_stores.delete(vs.id)
+                        except Exception as del_e:
+                            print(f"Error eliminando Vector Store: {del_e}")
+                            pass
+
+            print("Creando nuevo Vector Store...")
+            # Crear nuevo Vector Store
+            return self.client.beta.vector_stores.create(
+                name="Programas Políticos",
+                expires_after={
+                    "anchor": "last_active_at",
+                    "days": 90
+                }
+            )
+        except Exception as e:
+            print(f"Error en operación de Vector Store: {e}")
+            raise
 
     def _load_documents(self):
         """
@@ -79,17 +86,46 @@ class AssistantService:
         Inicializa el servicio creando el Vector Store y los asistentes.
         """
         print("Iniciando servicio...")
-        # Crear Vector Store
-        self.vector_store = self._create_or_get_vector_store()
-        print(f"Vector Store creado/recuperado: {self.vector_store.id}")
         
-        # Cargar documentos al Vector Store
-        self._load_documents()
-        print("Documentos cargados")
-        
-        # Inicializar asistentes
-        self.init_assistants()
-        print(f"Asistentes inicializados: {self.assistants}")
+        # Intentar obtener o crear Vector Store hasta que tengamos uno válido
+        max_attempts = 3
+        for attempt in range(max_attempts):
+            try:
+                # Crear Vector Store
+                self.vector_store = self._create_or_get_vector_store()
+                print(f"Vector Store creado/recuperado: {self.vector_store.id}")
+                
+                # Verificar que el Vector Store está activo
+                self.client.beta.vector_stores.files.list(self.vector_store.id)
+                
+                # Si llegamos aquí, el Vector Store es válido
+                # Cargar documentos al Vector Store
+                self._load_documents()
+                print("Documentos cargados")
+                
+                # Inicializar asistentes
+                self.init_assistants()
+                print(f"Asistentes inicializados: {self.assistants}")
+                
+                # Si todo fue exitoso, salir del bucle
+                break
+                
+            except Exception as e:
+                print(f"Intento {attempt + 1} falló: {str(e)}")
+                if self.vector_store:
+                    try:
+                        print(f"Eliminando Vector Store inválido: {self.vector_store.id}")
+                        self.client.beta.vector_stores.delete(self.vector_store.id)
+                    except Exception as del_e:
+                        print(f"Error eliminando Vector Store: {del_e}")
+                    self.vector_store = None
+                
+                if attempt == max_attempts - 1:
+                    print("Todos los intentos fallaron")
+                    raise
+                
+                print("Reintentando...")
+                time.sleep(1)  # Esperar un segundo antes de reintentar
 
     def init_assistants(self):
         """
@@ -173,43 +209,63 @@ class AssistantService:
         }
 
         # Obtener lista de asistentes existentes
-        existing_assistants = {
-            asst.name: asst.id 
-            for asst in self.client.beta.assistants.list().data
-        }
-        print(f"Asistentes existentes: {existing_assistants}")
+        try:
+            existing_assistants = {
+                asst.name: asst.id 
+                for asst in self.client.beta.assistants.list().data
+            }
+            print(f"Asistentes existentes: {existing_assistants}")
 
-        # Crear o actualizar cada asistente
-        for mode, config in assistant_configs.items():
-            if config["name"] in existing_assistants:
-                assistant_id = existing_assistants[config["name"]]
-                print(f"Actualizando asistente para modo {mode}: {assistant_id}")
-                
-                # Configurar el asistente con el Vector Store
-                assistant = self.client.beta.assistants.update(
-                    assistant_id=assistant_id,
-                    name=config["name"],
-                    instructions=config["instructions"],
-                    model="gpt-4-turbo-preview",
-                    tools=[{"type": "file_search"}],
-                    tool_resources={"file_search": {"vector_store_ids": [self.vector_store.id]}},
-                    metadata={"mode": mode}
-                )
-            else:
-                print(f"Creando nuevo asistente para modo {mode}")
-                assistant = self.client.beta.assistants.create(
-                    name=config["name"],
-                    instructions=config["instructions"],
-                    model="gpt-4-turbo-preview",
-                    tools=[{"type": "file_search"}],
-                    tool_resources={"file_search": {"vector_store_ids": [self.vector_store.id]}},
-                    metadata={"mode": mode}
-                )
-                assistant_id = assistant.id
-                print(f"Nuevo asistente creado: {assistant_id}")
+            # Crear o actualizar cada asistente
+            for mode, config in assistant_configs.items():
+                try:
+                    if config["name"] in existing_assistants:
+                        assistant_id = existing_assistants[config["name"]]
+                        print(f"Actualizando asistente para modo {mode}: {assistant_id}")
+                        
+                        # Intentar actualizar el asistente
+                        try:
+                            assistant = self.client.beta.assistants.update(
+                                assistant_id=assistant_id,
+                                name=config["name"],
+                                instructions=config["instructions"],
+                                model="gpt-4-turbo-preview",
+                                tools=[{"type": "file_search"}],
+                                tool_resources={"file_search": {"vector_store_ids": [self.vector_store.id]}},
+                                metadata={"mode": mode}
+                            )
+                        except Exception as update_error:
+                            print(f"Error actualizando asistente {mode}, creando nuevo: {update_error}")
+                            # Si falla la actualización, crear nuevo asistente
+                            assistant = self.client.beta.assistants.create(
+                                name=config["name"],
+                                instructions=config["instructions"],
+                                model="gpt-4-turbo-preview",
+                                tools=[{"type": "file_search"}],
+                                tool_resources={"file_search": {"vector_store_ids": [self.vector_store.id]}},
+                                metadata={"mode": mode}
+                            )
+                    else:
+                        print(f"Creando nuevo asistente para modo {mode}")
+                        assistant = self.client.beta.assistants.create(
+                            name=config["name"],
+                            instructions=config["instructions"],
+                            model="gpt-4-turbo-preview",
+                            tools=[{"type": "file_search"}],
+                            tool_resources={"file_search": {"vector_store_ids": [self.vector_store.id]}},
+                            metadata={"mode": mode}
+                        )
 
-            self.assistants[mode] = assistant_id
-            print(f"Asistente {mode} configurado con ID: {assistant_id}")
+                    self.assistants[mode] = assistant.id
+                    print(f"Asistente {mode} configurado con ID: {assistant.id}")
+                    
+                except Exception as e:
+                    print(f"Error configurando asistente {mode}: {e}")
+                    raise
+
+        except Exception as e:
+            print(f"Error listando asistentes: {e}")
+            raise
 
     async def process_query(self, query: str, mode: str = "neutral", thread_id: Optional[str] = None) -> dict:
         """
