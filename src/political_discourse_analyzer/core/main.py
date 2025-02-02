@@ -50,11 +50,18 @@ def create_app(init_services: bool = True):
 
     @app.get("/")
     async def read_root():
-        return {
-            "status": "active",
-            "message": "Political Discourse Analyzer API",
-            "version": "0.1.0"
-        }
+        try:
+            return {
+                "status": "active",
+                "message": "Political Discourse Analyzer API",
+                "version": "0.1.0"
+            }
+        except Exception as e:
+            print(f"Error en endpoint raíz: {e}")
+            return {
+                "status": "error",
+                "message": str(e)
+            }
 
     @app.post("/search", response_model=SearchResponse)
     async def search_documents(query: SearchQuery):

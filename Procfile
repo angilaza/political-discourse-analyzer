@@ -1,1 +1,1 @@
-web: uvicorn src.political_discourse_analyzer.core.main:app --host 0.0.0.0 --port $PORT
+web: poetry run uvicorn src.political_discourse_analyzer.core.main:app --host 0.0.0.0 --port $PORT

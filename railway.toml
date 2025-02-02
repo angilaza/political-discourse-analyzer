@@ -2,11 +2,16 @@
 builder = "nixpacks"
 buildCommand = "poetry install"
 
-[deploy]
-startCommand = "uvicorn src.political_discourse_analyzer.core.main:app --host 0.0.0.0 --port $PORT"
+[
+deploy
+]
+startCommand = "poetry run uvicorn src.political_discourse_analyzer.core.main:app --host 0.0.0.0 --port $PORT"
+restartPolicyType = "on_failure"
 healthcheckPath = "/"
 healthcheckTimeout = 100
-restartPolicyType = "on_failure"
 
-[deploy.variables]
+[
+deploy.env
+]
 PYTHON_VERSION = "3.11"
+POETRY_VERSION = "1.7.1"

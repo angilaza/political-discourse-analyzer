@@ -1,0 +1,8 @@
+[phases.setup]
+nixPkgs = ["python311", "poetry"]
+
+[phases.install]
+cmds = ["poetry install"]
+
+[start]
+cmd = "poetry run uvicorn src.political_discourse_analyzer.core.main:app --host 0.0.0.0 --port $PORT"
