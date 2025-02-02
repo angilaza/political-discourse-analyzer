@@ -7,7 +7,10 @@ from political_discourse_analyzer.models.settings import ApplicationSettings
 class AssistantService:
     def __init__(self, settings: ApplicationSettings):
         self.settings = settings
-        self.client = openai.Client(api_key=settings.ai_settings.openai_api_key)
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY environment variable is not set")
+        self.client = openai.Client(api_key=api_key)
         self.assistants: Dict[str, str] = {}
         self.vector_store = None
 
