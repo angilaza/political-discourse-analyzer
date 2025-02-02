@@ -3,6 +3,7 @@ from typing import Optional, Dict, List
 import openai
 from pathlib import Path
 from political_discourse_analyzer.models.settings import ApplicationSettings
+import os
 
 class AssistantService:
     def __init__(self, settings: ApplicationSettings):
