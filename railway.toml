@@ -5,8 +5,9 @@ buildCommand = "poetry install"
 [deploy]
 startCommand = "uvicorn src.political_discourse_analyzer.core.main:app --host 0.0.0.0 --port $PORT"
 healthcheckPath = "/"
-healthcheckTimeout = 100
+healthcheckTimeout = 100 
 restartPolicyType = "on_failure"
 
 [deploy.variables]
 PYTHON_VERSION = "3.11"
+NIXPACKS_PYTHON_VERSION = "3.11"
