@@ -2,85 +2,78 @@
 
 Una herramienta de análisis de discursos políticos mediante IA que permite explorar y comprender programas electorales a través de una interfaz conversacional.
 
-## 🎯 Objetivo
+## 📌 Visión General
 
-Esta aplicación permite a los usuarios explorar y comprender programas electorales y discursos políticos a través de una interfaz web sencilla. Ofrece dos modos de interacción:
+Political Discourse Analyzer es una herramienta innovadora diseñada para hacer más accesible y comprensible el análisis de programas electorales mediante el uso de inteligencia artificial. Esta aplicación permite a los usuarios interactuar con documentos políticos complejos de una manera intuitiva y conversacional.
 
-- **Modo Neutral**: Proporciona respuestas objetivas y directas sobre los contenidos políticos indexados (programas electorales).
-- **Modo Personal**: Utiliza un enfoque más contextualizado y conversacional para explicar las propuestas políticas.
+## 🎯 Modos de Interacción
 
-## 🏗️ Arquitectura
+La aplicación ofrece dos modos distintos de análisis:
 
-### Backend (FastAPI + OpenAI)
+- **Modo Programas Electorales**
+  - Análisis objetivo basado estrictamente en los documentos
+  - Respuestas con citaciones directas de los programas
+  - Ideal para investigación y consulta factual
+  - Mantiene la neutralidad en las explicaciones
 
-- **FastAPI**: Framework web moderno para crear APIs con Python
-- **OpenAI Assistants API**: Para procesamiento de lenguaje natural y búsqueda semántica
-- **PostgreSQL**: Base de datos principal para almacenamiento de interacciones
+- **Modo Perspectiva Personal**
+  - Enfoque contextualizado y conversacional
+  - Explicaciones adaptadas al usuario
+  - Relaciona diferentes aspectos de las propuestas
+  - Facilita la comprensión de implicaciones prácticas
+
+## 🏗️ Arquitectura Técnica
+
+### Backend
+
+- **FastAPI**: Framework web moderno para APIs
+- **OpenAI Assistants API**: Procesamiento de lenguaje natural
+- **PostgreSQL**: Base de datos para almacenamiento
 - **SQLAlchemy**: ORM para gestión de base de datos
 
-### Frontend (React)
+### Frontend
 
-- Interfaz de usuario moderna y responsiva
-- Diseño minimalista y funcional
-- Soporte para ambos modos de interacción
+- **React + Vite**: Framework de desarrollo
+- **TypeScript**: Tipado estático
+- **Tailwind CSS**: Estilos y diseño
+- **React Hooks**: Gestión de estado
 
-## 🚀 Instalación
-
-### Prerrequisitos
-
-- Python 3.11 o superior
-- Poetry (gestor de dependencias)
-- Node.js y npm (para el frontend)
-
-## 🚀 Instalación
+## 🚀 Instalación y Configuración
 
 ### Prerrequisitos
+
 - Python 3.11 o superior
 - Poetry (gestor de dependencias)
 - PostgreSQL 14
-- Node.js y npm (para el frontend)
+- Node.js y npm
+- Cuenta en OpenAI (para API key)
 
-### Configuración del Entorno
+### Configuración Inicial
 
-1. Clonar el repositorio:
+1. **Clonar el Repositorio**
 
 ```bash
-git clone https://github.com/tu-usuario/political-discourse-analyzer.git
+git clone https://github.com/angilaza/political-discourse-analyzer.git
 cd political-discourse-analyzer
 ```
 
-2. Configurar PostgreSQL:
+2. **Configurar PostgreSQL**
 
 ```bash
 # Crear usuario postgres (solo primera vez)
 createuser -s postgres
 
-# Verificar instalación
+# Verificar instalación y crear base de datos
 python -m political_discourse_analyzer.utils.db_management check
-
-# Crear y configurar base de datos
 python -m political_discourse_analyzer.utils.db_management setup
 ```
 
-3. Configurar el entorno Python:
-
-```bash
-# Instalar Poetry si no está instalado
-curl -sSL https://install.python-poetry.org | python3 -
-
-# Instalar dependencias
-poetry install
-
-# Activar el entorno virtual
-poetry shell
-```
-
-4. Configurar variables de entorno:
+3. **Configurar Variables de Entorno**
 
 ```bash
 cp .env.example .env
 
-# Editar .env y añadir:
+# Editar .env con los siguientes valores:
 OPENAI_API_KEY=tu_clave_api
 MODEL_NAME=gpt-4
 ENVIRONMENT=development
@@ -91,7 +84,58 @@ DB_PORT=5432
 DB_NAME=political_discourse
 ```
 
-### Comandos de Base de Datos
+## 🔧 Gestión del Entorno de Desarrollo
+
+### 1. Configuración del Entorno Virtual
+
+```bash
+# Instalar Poetry si no está instalado
+curl -sSL https://install.python-poetry.org | python3 -
+
+# Instalar dependencias del proyecto
+poetry install
+
+# Activar el entorno virtual
+poetry shell
+```
+
+### 2. Secuencia de Inicialización
+
+Después de activar el entorno virtual:
+
+```bash
+# 1. Verificar estado de la base de datos
+python -m political_discourse_analyzer.utils.db_management check
+python -m political_discourse_analyzer.utils.db_management tables
+
+# 2. Inicializar el sistema (Vector Store y Asistentes)
+python -m src.political_discourse_analyzer.core.initialize
+
+# 3. Iniciar el servidor backend (en una terminal)
+uvicorn src.political_discourse_analyzer.core.main:app --reload
+
+# 4. En otra terminal (con el entorno activado):
+cd frontend
+npm install
+npm run dev
+```
+
+### 3. Comandos de Desarrollo Diario
+
+```bash
+# Activar el entorno (al comenzar a trabajar)
+cd political-discourse-analyzer
+poetry shell
+
+# Iniciar backend (en una terminal)
+uvicorn src.political_discourse_analyzer.core.main:app --reload
+
+# Iniciar frontend (en otra terminal)
+cd frontend
+npm run dev
+```
+
+### 4. Gestión de Base de Datos
 
 ```bash
 # Ver tablas existentes
@@ -104,82 +148,170 @@ python -m political_discourse_analyzer.utils.db_management reset
 python -m political_discourse_analyzer.utils.db_management check
 ```
 
-### Inicialización
+### 5. Solución de Problemas Comunes
 
-1. Inicializar el sistema:
-
-```bash
-python -m src.political_discourse_analyzer.core.initialize
-```
-
-2. Ejecutar el servidor de desarrollo:
+1. **Problemas con el Entorno Virtual**
 
 ```bash
-python -m src.political_discourse_analyzer.core.main
+# Recrear el entorno
+poetry env remove python
+poetry install
 ```
 
-## 📚 Uso
+2. **Errores de Dependencias**
 
-1. El servidor estará disponible en `http://localhost:8000`
-2. La API incluye los siguientes endpoints:
-   - `POST /search`: Para realizar consultas sobre programas electorales
-   - `GET /`: Información sobre el estado del servicio
+```bash
+# Actualizar dependencias
+poetry update
+```
 
-## 🔧 Desarrollo
+3. **Reinicio Completo**
 
-### Estructura del Proyecto
+```bash
+# Limpiar todo y reiniciar
+poetry env remove python
+rm -rf .venv
+poetry install
+poetry shell
+```
+
+## 📂 Estructura del Proyecto
 
 ```text
 political-discourse-analyzer/
 ├── data/
 │   ├── programs/     # Documentos políticos
-│   └── db/           # Base de datos SQLite (desarrollo)
+│   └── db/          # Directorio para PostgreSQL
 ├── src/
 │   └── political_discourse_analyzer/
-│       ├── core/     # Núcleo de la aplicación
-│       ├── models/   # Modelos de datos
-│       ├── services/ # Servicios (DB, OpenAI, etc.)
-│       └── utils/    # Utilidades
-├── tests/
-│   ├── conftest.py    # Configuración de pytest
-│   ├── test_api/      # Tests de endpoints
-│   ├── test_services/ # Tests de servicios
-│   └── test_utils/    # Tests de utilidades
-└── frontend/          # Interfaz de usuario React
+│       ├── core/          # Núcleo de la aplicación
+│       │   ├── main.py    # Servidor FastAPI
+│       │   └── initialize.py # Inicialización del sistema
+│       ├── models/        # Modelos de datos
+│       ├── services/      # Servicios principales
+│       │   ├── assistant_service.py  # Integración con OpenAI
+│       │   └── database_service.py   # Gestión de BD
+│       └── utils/         # Utilidades
+│           ├── db_management.py      # Gestión de BD
+│           └── document_checker.py   # Verificación de documentos
+├── frontend/        # Aplicación React
+└── tests/          # Tests del sistema
 ```
 
-### Comandos Útiles
+## 🌐 API Endpoints
+
+### Estado del Servicio
+
+```bash
+GET /
+```
+
+Retorna el estado actual del servicio.
+
+### Consultas
+
+```bash
+POST /search
+```
+
+Realiza consultas sobre programas electorales.
+
+Ejemplo de payload:
+
+```json
+{
+  "query": "¿Qué propone el PSOE en materia de vivienda?",
+  "mode": "neutral"
+}
+```
+
+## ☁️ Despliegue en Railway
+
+### 1. Preparación
+
+- Crear cuenta en [Railway](https://railway.app)
+- Conectar repositorio de GitHub
+- Tener lista la API key de OpenAI
+
+### 2. Configuración en Railway
+
+1. **Crear Nuevo Proyecto**
+   - Seleccionar "Deploy from GitHub repo"
+   - Elegir el repositorio
+
+2. **Configurar PostgreSQL**
+   - Añadir servicio PostgreSQL desde la UI de Railway
+   - Railway proporcionará automáticamente `DATABASE_URL`
+
+3. **Configurar Variables de Entorno**
+
+```bash
+OPENAI_API_KEY=tu_clave_api
+MODEL_NAME=gpt-4
+ENVIRONMENT=production
+PORT=8000
+```
+
+4. **Configurar Start Command**
+
+```bash
+uvicorn src.political_discourse_analyzer.core.main:app --host 0.0.0.0 --port $PORT
+```
+
+### 3. Verificación del Despliegue
+
+- Comprobar logs en Railway Dashboard
+- Verificar que la BD se ha inicializado correctamente
+- Probar endpoints a través de la URL proporcionada
+
+## 🧪 Tests
+
+```bash
+# Ejecutar todos los tests
+pytest
+
+# Ejecutar tests específicos
+pytest tests/test_api/
+pytest tests/test_services/
+pytest tests/test_utils/
+
+# Ejecutar tests con coverage
+pytest --cov=src
+```
+
+## 🔧 Comandos de Utilidad
 
 ```bash
 # Verificar documentos
-python -m src.political_discourse_analyzer.utils.document_checker
-
-# Ejecutar tests
-pytest
+python -m political_discourse_analyzer.utils.document_checker
 
 # Formatear código
 black src/
+
+# Lint
+ruff check src/
 ```
 
 ## 🤝 Contribuir
 
 1. Fork el repositorio
-2. Crear una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abrir un Pull Request
+2. Crear rama para feature: `git checkout -b feature/NuevaCaracteristica`
+3. Commit cambios: `git commit -m 'Añadir nueva característica'`
+4. Push a la rama: `git push origin feature/NuevaCaracteristica`
+5. Abrir Pull Request
 
 ## 📝 Licencia
 
 [MIT](LICENSE)
 
-## 🙏 Agradecimientos
-
-- OpenAI por proporcionar la API de Asistentes
-- A los contribuidores de las bibliotecas utilizadas
-
-## 📬 Contacto
+## 👥 Autores
 
 Angélica Laza - <angi.laza@hotmail.es>
 
-Link del Proyecto: [https://github.com/angilaza/political-discourse-analyzer](https://github.com/angilaza/political-discourse-analyzer)
+## 🔗 Enlaces Útiles
+
+- [Dashboard de Railway](https://railway.app/dashboard)
+- [OpenAI Platform](https://platform.openai.com)
+- [Documentación de FastAPI](https://fastapi.tiangolo.com)
+- [React Documentation](https://reactjs.org)
+- [Tailwind CSS](https://tailwindcss.com)
