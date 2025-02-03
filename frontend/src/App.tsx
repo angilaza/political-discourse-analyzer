@@ -46,7 +46,7 @@ const App: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/search', {
+      const response = await fetch('https://political-discourse-analyzer-production.up.railway.app/search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

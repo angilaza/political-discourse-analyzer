@@ -45,7 +45,6 @@ class DatabaseService:
             db_url = os.getenv("DATABASE_URL")
             if not db_url:
                 raise ValueError("DATABASE_URL no está configurada en producción")
-            # Railway usa postgres://, SQLAlchemy necesita postgresql://
             return db_url.replace("postgres://", "postgresql://", 1)
         
         # Configuración local
