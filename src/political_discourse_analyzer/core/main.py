@@ -9,6 +9,17 @@ from dotenv import load_dotenv
 from political_discourse_analyzer.models.settings import ApplicationSettings
 from political_discourse_analyzer.services.assistant_service import AssistantService
 from political_discourse_analyzer.services.database_service import DatabaseService
+import logging
+import sys
+
+# Configurar logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    stream=sys.stdout
+)
+
+logger = logging.getLogger(__name__)
 
 def create_app(init_services: bool = True):
     """
@@ -18,6 +29,7 @@ def create_app(init_services: bool = True):
         init_services (bool): Si se deben inicializar los servicios automáticamente
     """
     load_dotenv()
+    logger.info("Iniciando creación de la aplicación...")
     
     app = FastAPI(title="Political Discourse Analyzer API")
     
@@ -47,17 +59,21 @@ def create_app(init_services: bool = True):
     db_service = DatabaseService()
 
     if init_services:
+        logger.info("Initializing assistant service...")
         assistant_service.init_service()
+        logger.info("Assistant service initialized successfully")
 
     @app.get("/")
     async def read_root():
         try:
+            logger.info("Processing root endpoint request")
             return {
                 "status": "active",
                 "message": "Political Discourse Analyzer API",
                 "version": "0.1.0"
             }
         except Exception as e:
+            logger.error(f"Error in root endpoint: {str(e)}", exc_info=True)
             print(f"Error en endpoint raíz: {e}")
             return {
                 "status": "error",
@@ -67,6 +83,7 @@ def create_app(init_services: bool = True):
     @app.post("/search", response_model=SearchResponse)
     async def search_documents(query: SearchQuery):
         try:
+            logger.info(f"Processing search request with thread_id: {query.thread_id}")
             response = await assistant_service.process_query(
                 query=query.query,
                 thread_id=query.thread_id,

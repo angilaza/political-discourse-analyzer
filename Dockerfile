@@ -9,14 +9,17 @@ RUN apt-get update && \
     libpq-dev && \
     rm -rf /var/lib/apt/lists/*
 
-# Instalar poetry
+# Configurar entorno
 ENV POETRY_HOME=/opt/poetry
 ENV POETRY_VIRTUALENVS_CREATE=false
+ENV PYTHONUNBUFFERED=1
+
+# Instalar poetry
 RUN curl -sSL https://install.python-poetry.org | python3 - && \
     cd /usr/local/bin && \
     ln -s /opt/poetry/bin/poetry
 
-# Establecer el directorio de trabajo
+# Establecer directorio de trabajo
 WORKDIR /app
 
 # Copiar el proyecto
@@ -26,4 +29,4 @@ COPY . .
 RUN poetry install --without dev
 
 # Comando para ejecutar la aplicación
-CMD ["poetry", "run", "uvicorn", "src.political_discourse_analyzer.core.main:app", "--host", "0.0.0.0", "--port", "$PORT"]
+CMD ["poetry", "run", "uvicorn", "src.political_discourse_analyzer.core.main:app", "--host", "0.0.0.0", "--port", "$PORT", "--log-level", "debug"]

@@ -1,6 +1,6 @@
 build.builder = "DOCKERFILE"
 build.dockerfilePath = "Dockerfile"
 
-deploy.healthcheckPath = "/"
+deploy.healthcheckPath = "/health"
 deploy.healthcheckTimeout = 300
 deploy.restartPolicyType = "on_failure"
