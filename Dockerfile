@@ -29,4 +29,4 @@ COPY . .
 RUN poetry install --without dev
 
 # Comando para ejecutar la aplicación
-CMD ["poetry", "run", "uvicorn", "src.political_discourse_analyzer.core.main:app", "--host", "0.0.0.0", "--port", "$PORT", "--log-level", "debug"]
+CMD poetry run uvicorn src.political_discourse_analyzer.core.main:app --host 0.0.0.0 --port ${PORT} --log-level debug
