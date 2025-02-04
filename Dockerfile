@@ -1,12 +1,17 @@
 FROM python:3.11-slim
 
-# Instalar curl y otras dependencias necesarias
+# Instalar dependencias del sistema
 RUN apt-get update && \
-    apt-get install -y curl && \
+    apt-get install -y \
+    curl \
+    gcc \
+    python3-dev \
+    libpq-dev && \
     rm -rf /var/lib/apt/lists/*
 
-# Instalar poetry y añadirlo al PATH
+# Instalar poetry
 ENV POETRY_HOME=/opt/poetry
+ENV POETRY_VIRTUALENVS_CREATE=false
 RUN curl -sSL https://install.python-poetry.org | python3 - && \
     cd /usr/local/bin && \
     ln -s /opt/poetry/bin/poetry
@@ -14,15 +19,11 @@ RUN curl -sSL https://install.python-poetry.org | python3 - && \
 # Establecer el directorio de trabajo
 WORKDIR /app
 
-# Copiar los archivos de configuración de poetry
-COPY pyproject.toml poetry.lock ./
-
-# Deshabilitar la creación de entornos virtuales e instalar dependencias
-RUN /opt/poetry/bin/poetry config virtualenvs.create false && \
-    /opt/poetry/bin/poetry install --no-interaction --no-ansi
-
-# Copiar el código de la aplicación
+# Copiar el proyecto
 COPY . .
 
+# Instalar dependencias
+RUN poetry install --without dev
+
 # Comando para ejecutar la aplicación
-CMD ["/opt/poetry/bin/poetry", "run", "uvicorn", "src.political_discourse_analyzer.core.main:app", "--host", "0.0.0.0", "--port", "$PORT"]
+CMD ["poetry", "run", "uvicorn", "src.political_discourse_analyzer.core.main:app", "--host", "0.0.0.0", "--port", "$PORT"]
