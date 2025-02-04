@@ -4,6 +4,7 @@ import openai
 from pathlib import Path
 from political_discourse_analyzer.models.settings import ApplicationSettings
 import os
+import asyncio
 
 class AssistantService:
     def __init__(self, settings: ApplicationSettings):
@@ -141,74 +142,54 @@ class AssistantService:
         assistant_configs = {
             "neutral": {
                 "name": "Asistente de Programas Electorales",
-                "instructions": """Eres un asistente especializado en analizar y explicar programas electorales.
-                Al responder a preguntas sobre propuestas políticas, sigue estas pautas:
-
-                1. FORMATO DE RESPUESTA:
-                   - Comienza con una breve introducción de una línea
-                   - Enumera cada propuesta en un párrafo separado
-                   - Usa viñetas o números para las diferentes propuestas
-                   - Limita la respuesta a 4-5 propuestas principales
-                   - Deja espacio entre párrafos para mejor legibilidad
-
-                2. CONTENIDO PRINCIPAL:
-                   - Presenta las propuestas de forma clara y concisa
-                   - Evita jerga técnica innecesaria
-                   - Estructura la información de forma lógica
-                   - Mantén un tono neutral y objetivo
-                   - Limita cada propuesta a 2-3 líneas
-
-                3. SECCIÓN DE REFERENCIAS:
-                   Añade siempre al final una sección de "Fuentes:" con este formato:
-
-                   Fuentes:
-                   - Programa Electoral [Partido] 2023, página X: [Título de la sección]
-                     Enlace: https://[url_del_documento]#page=X
-
-                   - Repite para cada fuente utilizada
-                   - Ordena las referencias por orden de aparición
-                   - Incluye el número de página específico para cada cita
-                   - Si una propuesta aparece en múltiples páginas, cita todas
-
-                4. LONGITUD Y ESTILO:
-                   - Mantén el cuerpo principal conciso y directo
-                   - La sección de referencias debe ir separada por una línea en blanco
-                   - Usa formato consistente para todas las referencias
-                """
-            },
-            "personal": {
-                "name": "Asistente de Perspectiva Personal",
-                "instructions": """Eres un asistente que analiza y explica las posiciones políticas desde una 
-                perspectiva más personal y contextualizada. Al responder:
-
-                1. FORMATO DE RESPUESTA:
-                   - Comienza con un contexto breve y accesible
-                   - Presenta las ideas principales de forma conversacional
-                   - Usa ejemplos prácticos cuando sea posible
-                   - Mantén párrafos cortos y bien espaciados
-
-                2. EXPLICACIONES:
-                   - Relaciona las propuestas con situaciones cotidianas
-                   - Explica las implicaciones prácticas
-                   - Usa analogías cuando sea apropiado
-                   - Mantén un tono cercano pero profesional
-
-                3. SECCIÓN DE REFERENCIAS:
-                   Al final de cada respuesta, incluye:
-
-                   Fuentes consultadas:
-                   - Programa Electoral [Partido] 2023, páginas X-Y
-                     Puedes consultar los detalles en: [URL del documento]
-
-                   - Mantén las referencias en un tono más conversacional
-                   - Incluye siempre los números de página
-                   - Proporciona contexto sobre dónde encontrar más información
-
-                4. ESTRUCTURA GENERAL:
-                   - Contenido principal: explicación clara y accesible
-                   - Línea en blanco
-                   - Sección de referencias: formato consistente y fácil de seguir
-                """
+                "instructions": ("Eres un asistente especializado en analizar y explicar programas electorales, basándote "
+                    "estrictamente en la información contenida en los documentos oficiales. Responde únicamente "
+                    "con datos objetivos extraídos de dichos documentos y evita emitir opiniones personales.\n\n"
+                    
+                    "1. OBJETIVO DE LA RESPUESTA:\n"
+                    "   - Tu respuesta se fundamentará en el análisis de los programas electorales disponibles.\n"
+                    "   - Deja claro que la información que presentas responde a la consulta realizada, por ejemplo, "
+                    "     si se pregunta sobre propuestas en materia de energía, indica que respondes sobre ese tema.\n\n"
+                    
+                    "2. PRESENTACIÓN:\n"
+                    "   - Comienza con una breve introducción que informe al usuario sobre el enfoque de la respuesta. "
+                    "     Ejemplo: 'Esta respuesta se basa en el análisis de los programas electorales disponibles, en los que se extraen propuestas sobre [tema de la consulta].'\n"
+                    "   - Presenta cada propuesta en párrafos separados utilizando viñetas o numeración para facilitar la lectura.\n"
+                    "   - Utiliza párrafos cortos y separaciones claras para que el contenido sea fácilmente legible.\n\n"
+                    
+                    "3. CONTENIDO DE CADA PROPUESTA:\n"
+                    "   - Resume cada propuesta de forma concisa (limitada a 2-3 líneas) sin perder claridad.\n"
+                    "   - Incluye en la descripción la ubicación precisa de la información, especificando el documento "
+                    "     y la sección o página de donde se extrae, utilizando el siguiente formato: \n"
+                    "       > Fuente: [Nombre_del_documento]\n"
+                    "       > Sección: [Nombre_de_la_sección o página X]\n\n"
+                    
+                    "4. SECCIÓN DE REFERENCIAS:\n"
+                    "   - Al final de la respuesta, añade una sección titulada 'Fuentes:' o 'Referencias:'\n"
+                    "   - En esta sección, lista de forma ordenada todas las fuentes utilizadas, en el orden en que "
+                    "     aparecen en el cuerpo de la respuesta.\n\n"
+                    
+                    "5. EJEMPLO DE ESTRUCTURA DE RESPUESTA:\n"
+                    "   - Introducción breve:\n"
+                    "       'Esta respuesta se basa en el análisis de los programas electorales disponibles, "
+                    "        focalizándose en las propuestas sobre [tema].'\n\n"
+                    "   - Propuestas (presentadas en párrafos separados o en lista):\n"
+                    "       1. **[Partido] - [Título de la propuesta]**: Breve descripción de la propuesta. \n"
+                    "          > Fuente: [Documento]\n"
+                    "          > Sección: [Sección o página]\n\n"
+                    "       2. **[Otro Partido] - [Título de la propuesta]**: Breve descripción de la propuesta. \n"
+                    "          > Fuente: [Documento]\n"
+                    "          > Sección: [Sección o página]\n\n"
+                    "   - Sección final de referencias:\n"
+                    "       Fuentes:\n"
+                    "       - [Documento] - Sección: [Sección o página]\n"
+                    "       - [Otro Documento] - Sección: [Sección o página]\n\n"
+                    
+                    "6. DIRECTRICES ADICIONALES:\n"
+                    "   - Responde de forma objetiva y sin añadir juicios personales.\n"
+                    "   - Limita la respuesta a las 4-5 propuestas más relevantes según la consulta.\n"
+                    "   - No agregues información que no esté respaldada por los documentos.\n"
+                )
             }
         }
 
@@ -271,98 +252,108 @@ class AssistantService:
             print(f"Error listando asistentes: {e}")
             raise
 
+    def _format_response(self, raw_response: str) -> str:
+        """
+        Asegura que la respuesta sigue el formato establecido.
+        """
+        # Dividir en secciones principales
+        sections = raw_response.split('\n\n')
+        
+        # Asegurar que los títulos están en mayúsculas
+        formatted_sections = []
+        for section in sections:
+            # Si es una línea que parece un título (sin ">" y sin "-")
+            if section.strip() and '>' not in section and '-' not in section:
+                words = section.split()
+                if len(words) <= 5:  # Probable título
+                    section = section.upper()
+            formatted_sections.append(section)
+        
+        # Reconstruir con espaciado correcto
+        formatted_response = '\n\n'.join(formatted_sections)
+        
+        return formatted_response
+
     async def process_query(self, query: str, mode: str = "neutral", thread_id: Optional[str] = None) -> dict:
         """
-        Procesa una consulta usando el asistente apropiado.
+        Procesa una consulta usando el asistente apropiado con mejor manejo de citas.
         """
-        print(f"Procesando consulta en modo {mode}")
-        print(f"Asistentes disponibles: {self.assistants}")
-        
         if mode not in self.assistants:
-            raise ValueError(f"Asistente no configurado para el modo: {mode}")
+            raise ValueError(f"Modo no válido: {mode}")
 
-        assistant_id = self.assistants[mode]
-        print(f"Usando asistente: {assistant_id}")
-
-        # Crear thread o usar existente
         try:
-            if thread_id:
-                thread = self.client.beta.threads.retrieve(thread_id)
-                print(f"Usando thread existente: {thread_id}")
-            else:
-                thread = self.client.beta.threads.create()
-                print(f"Nuevo thread creado: {thread.id}")
+            # Crear o recuperar thread
+            thread = (self.client.beta.threads.retrieve(thread_id) if thread_id 
+                     else self.client.beta.threads.create())
 
-            # Añadir mensaje del usuario
+            # Añadir mensaje con contexto específico según el modo
+            context_prompts = {
+                "neutral": "Por favor, proporciona una respuesta estructurada con citas específicas de los documentos.",
+                "personal": "Por favor, explica esto de forma conversacional pero incluyendo referencias específicas."
+            }
+            
+            full_query = f"{context_prompts[mode]}\n\nConsulta del usuario: {query}"
+            
             message = self.client.beta.threads.messages.create(
                 thread_id=thread.id,
                 role="user",
-                content=query
+                content=full_query
             )
-            print(f"Mensaje añadido al thread: {message.id}")
 
             # Ejecutar el asistente
-            print("Iniciando ejecución del asistente...")
             run = self.client.beta.threads.runs.create(
                 thread_id=thread.id,
-                assistant_id=assistant_id
+                assistant_id=self.assistants[mode]
             )
-            print(f"Run creado: {run.id}")
 
-            # Esperar la respuesta con timeout
+            # Esperar respuesta con mejor manejo de errores
             start_time = time.time()
-            max_wait_time = 300  # 5 minutos máximo
-            
             while True:
-                if time.time() - start_time > max_wait_time:
-                    raise Exception("Timeout esperando respuesta del asistente")
+                if time.time() - start_time > 300:  # 5 minutos timeout
+                    raise TimeoutError("La respuesta tardó demasiado")
 
                 run = self.client.beta.threads.runs.retrieve(
                     thread_id=thread.id,
                     run_id=run.id
                 )
-                print(f"Estado del run: {run.status}")
 
                 if run.status == "completed":
                     break
-                elif run.status == "failed":
-                    if hasattr(run, 'last_error'):
-                        raise Exception(f"Run failed with error: {run.last_error}")
-                    else:
-                        # Obtener más detalles del error
-                        run_steps = self.client.beta.threads.runs.steps.list(
-                            thread_id=thread.id,
-                            run_id=run.id
-                        )
-                        error_details = [step for step in run_steps.data if step.status == "failed"]
-                        raise Exception(f"Run failed. Steps with errors: {error_details}")
-                elif run.status in ["cancelled", "expired"]:
-                    raise Exception(f"Run ended with status: {run.status}")
+                elif run.status in ["failed", "cancelled", "expired"]:
+                    raise Exception(f"Error en la ejecución: {run.status}")
                 
-                time.sleep(1)  # Esperar 1 segundo antes de verificar nuevamente
+                await asyncio.sleep(1)
 
-            # Obtener mensajes
-            print("Obteniendo mensajes...")
-            messages = self.client.beta.threads.messages.list(
-                thread_id=thread.id
-            )
-
-            # Obtener el último mensaje y sus anotaciones
+            # Procesar la respuesta y las citas
+            messages = self.client.beta.threads.messages.list(thread_id=thread.id)
             last_message = messages.data[0]
-            print(f"Mensaje recibido: {last_message.id}")
+
+            # Extraer y formatear las citas
+            citations = []
+            annotations = getattr(last_message.content[0], 'annotations', []) or []
             
+            for annotation in annotations:
+                if getattr(annotation, 'type', None) == "file_citation":
+                    citation = {
+                        'text': annotation.text,
+                        'file_citation': annotation.file_citation.quote,
+                        'file_path': annotation.file_citation.file_path
+                    }
+                    citations.append(citation)
+
+            # Formatear y estructurar la respuesta
+            raw_response = last_message.content[0].text.value
+            formatted_response = self._format_response(raw_response)
+            
+            # Formatear la respuesta final
             response = {
-                "response": last_message.content[0].text.value,
-                "thread_id": thread.id,
-                "citations": [
-                    annotation.text
-                    for annotation in (getattr(last_message.content[0], 'annotations', []) or [])
-                    if getattr(annotation, 'type', None) == "file_citation"
-                ]
+                'response': formatted_response,
+                'thread_id': thread.id,
+                'citations': citations
             }
-            print("Respuesta preparada con éxito")
+
             return response
 
         except Exception as e:
-            print(f"Error durante el procesamiento: {str(e)}")
+            logger.error(f"Error en process_query: {str(e)}", exc_info=True)
             raise

@@ -196,6 +196,9 @@ political-discourse-analyzer/
 │           └── document_checker.py   # Verificación de documentos
 ├── frontend/        # Aplicación React
 └── tests/          # Tests del sistema
+├── Dockerfile      # Configuración de contenedor
+├── railway.toml    # Configuración de Railway
+└── .dockerignore   # Exclusiones para Docker
 ```
 
 ## 🌐 API Endpoints
@@ -227,42 +230,39 @@ Ejemplo de payload:
 
 ## ☁️ Despliegue en Railway
 
-### 1. Preparación
+El proyecto está configurado para un despliegue en dos servicios separados:
 
-- Crear cuenta en [Railway](https://railway.app)
-- Conectar repositorio de GitHub
-- Tener lista la API key de OpenAI
+### 1. Backend
 
-### 2. Configuración en Railway
+- Despliegue automatizado desde GitHub
+- Contenedorización con Docker
+- Configuración mediante `railway.toml` y `Dockerfile`
+- Healthcheck integrado
+- Variables de entorno necesarias:
+  - OPENAI_API_KEY
+  - MODEL_NAME
+  - ENVIRONMENT
+  - PORT
 
-1. **Crear Nuevo Proyecto**
-   - Seleccionar "Deploy from GitHub repo"
-   - Elegir el repositorio
+### 2. Frontend
 
-2. **Configurar PostgreSQL**
-   - Añadir servicio PostgreSQL desde la UI de Railway
-   - Railway proporcionará automáticamente `DATABASE_URL`
+- Despliegue separado en `/frontend`
+- Construcción y servido automático
+- Variable de entorno para conexión con backend:
+  - VITE_API_URL
 
-3. **Configurar Variables de Entorno**
+### 3. Base de Datos
 
-```bash
-OPENAI_API_KEY=tu_clave_api
-MODEL_NAME=gpt-4
-ENVIRONMENT=production
-PORT=8000
-```
+- PostgreSQL gestionado por Railway
+- Configuración automática de conexión
+- Variables proporcionadas por Railway:
+  - DATABASE_URL
 
-4. **Configurar Start Command**
+### 4. Verificación del Despliegue
 
-```bash
-uvicorn src.political_discourse_analyzer.core.main:app --host 0.0.0.0 --port $PORT
-```
-
-### 3. Verificación del Despliegue
-
-- Comprobar logs en Railway Dashboard
-- Verificar que la BD se ha inicializado correctamente
-- Probar endpoints a través de la URL proporcionada
+- Monitorización via Railway Dashboard
+- Logs disponibles para debugging
+- Endpoints de health para verificación
 
 ## 🧪 Tests
 
