@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Send, History, Share2 } from 'lucide-react';
 import logo from './assets/logo.png';
+import ReactMarkdown from 'react-markdown';
 
 interface Message {
   text: string;
@@ -15,13 +16,13 @@ interface MessageProps {
 const MessageComponent: React.FC<MessageProps> = ({ message }) => (
   <div className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
     <div
-      style={{ whiteSpace: 'pre-wrap' }} // Esta línea asegura que los saltos de línea se respeten
+      style={{ whiteSpace: 'pre-wrap' }} // Esto respeta los saltos de línea
       className={`max-w-3xl p-4 rounded-lg ${message.sender === 'user'
         ? 'bg-blue-600 text-white'
         : 'bg-white border shadow-sm'
         }`}
     >
-      {message.text}
+      <ReactMarkdown>{message.text}</ReactMarkdown>
     </div>
   </div>
 );
