@@ -260,20 +260,18 @@ class AssistantService:
         """
         Reformatea la respuesta para mejorar su legibilidad.
         
-        Se insertan saltos de línea antes de cada propuesta numerada y se fuerza que las citas
-        ("> Fuente:" y "> Sección:") aparezcan en líneas separadas.
+        Se insertan saltos de línea antes de cada propuesta numerada y se formatean las secciones de cita:
+        - Se reemplaza "> Fuente:" por "• **Fuente:**"
+        - Se reemplaza "> Sección:" por "• **Sección:**"
         """
-        # Insertar salto de línea antes de propuestas numeradas (si no hay ya uno)
         formatted = re.sub(r'(?<!\n)(\d+\.\s*\*\*)', r'\n\n\1', raw_response)
-        # Forzar que "> Fuente:" y "> Sección:" estén en líneas separadas
-        formatted = re.sub(r'\s*(>\s*Fuente:)', r'\n\1', formatted)
-        formatted = re.sub(r'\s*(>\s*Sección:)', r'\n\1', formatted)
-        # Añadir línea en blanco antes de la sección de fuentes si no existe
+        formatted = re.sub(r'^\s*>+\s*Fuente:\s*', r'• **Fuente:** ', formatted, flags=re.MULTILINE)
+        formatted = re.sub(r'^\s*>+\s*Sección:\s*', r'• **Sección:** ', formatted, flags=re.MULTILINE)
         formatted = re.sub(r'(\nFuentes:)', r'\n\n\1', formatted)
-        # Limpiar líneas en blanco y espacios extra
         lines = [line.strip() for line in formatted.splitlines() if line.strip()]
         formatted = "\n\n".join(lines)
         return formatted
+
 
     async def process_query(self, query: str, mode: str = "neutral", thread_id: Optional[str] = None) -> dict:
         """

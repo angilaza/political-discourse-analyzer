@@ -15,6 +15,7 @@ interface MessageProps {
 const MessageComponent: React.FC<MessageProps> = ({ message }) => (
   <div className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
     <div
+      style={{ whiteSpace: 'pre-wrap' }} // Esta línea asegura que los saltos de línea se respeten
       className={`max-w-3xl p-4 rounded-lg ${message.sender === 'user'
         ? 'bg-blue-600 text-white'
         : 'bg-white border shadow-sm'
