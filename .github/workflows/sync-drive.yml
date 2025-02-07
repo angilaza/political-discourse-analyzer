@@ -31,7 +31,7 @@ jobs:
           import os
           import json
 
-          SCOPES = ['https://www.googleapis.com/auth/drive.file']
+          SCOPES = ['https://www.googleapis.com/auth/drive']
           creds_json = os.environ.get('GDRIVE_CREDENTIALS')
 
           if not creds_json:
@@ -42,18 +42,18 @@ jobs:
 
           folder_id = '1DPYh6fza2995GHNd8xZy_K5BBtHELbZg'
 
+          # Función para borrar contenido de una carpeta en Google Drive
+          def clear_drive_folder(service, folder_id):
+              query = f"'{folder_id}' in parents"
+              results = service.files().list(q=query, fields='files(id, name)').execute()
+              files = results.get('files', [])
+              for file in files:
+                  service.files().delete(fileId=file['id']).execute()
+                  print(f'Borrado: {file["name"]}')
+
+          # Función para subir contenido a Google Drive
           def upload_to_drive(local_path, parent_folder_id):
               for root, dirs, files in os.walk(local_path):
-                  for directory in dirs:
-                      folder_metadata = {
-                          'name': directory,
-                          'mimeType': 'application/vnd.google-apps.folder',
-                          'parents': [parent_folder_id]
-                      }
-                      folder = service.files().create(body=folder_metadata, fields='id').execute()
-                      folder_id = folder.get('id')
-                      upload_to_drive(os.path.join(root, directory), folder_id)
-
                   for file in files:
                       file_path = os.path.join(root, file)
                       file_metadata = {'name': file, 'parents': [parent_folder_id]}
@@ -61,10 +61,14 @@ jobs:
                       service.files().create(body=file_metadata, media_body=media).execute()
                       print(f'Subido: {file_path}')
 
-          # Subir todos los archivos y carpetas
-          upload_to_drive('.', folder_id)
-          print('Subida completa a Google Drive')" > upload.py
+          # Borrar contenido existente en la carpeta de Google Drive
+          clear_drive_folder(service, folder_id)
 
+          # Subir archivos actualizados
+          upload_to_drive('.', folder_id)
+
+          print('Sincronización completa con Google Drive')" > upload.py
+          
       - name: Upload files to Google Drive
         env:
           GDRIVE_CREDENTIALS: ${{ secrets.GDRIVE_CREDENTIALS }}
