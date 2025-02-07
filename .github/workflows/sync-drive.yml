@@ -25,7 +25,8 @@ jobs:
 
       - name: Create Google Drive Upload Script
         run: |
-          echo "from google.oauth2.service_account import Credentials
+          cat << 'EOF' > upload.py
+          from google.oauth2.service_account import Credentials
           from googleapiclient.discovery import build
           from googleapiclient.http import MediaFileUpload
           import os
@@ -44,13 +45,13 @@ jobs:
 
           # Función para borrar contenido de una carpeta en Google Drive
           def clear_drive_folder(service, folder_id):
-              query = f\"'{folder_id}' in parents\"
+              query = f"'{folder_id}' in parents"
               results = service.files().list(q=query, fields='files(id, name)').execute()
               files = results.get('files', [])
               
               # Depurar estructura de archivos obtenidos
               for file in files:
-                  print(f'Archivo encontrado: {file}')  # Depuración para ver el contenido de 'file'
+                  print(f"Archivo encontrado: {file}")  # Depuración para ver el contenido de 'file'
                   if 'name' in file:
                       print(f'Borrado: {file["name"]}')
                   else:
@@ -73,7 +74,8 @@ jobs:
           # Subir archivos actualizados
           upload_to_drive('.', folder_id)
 
-          print('Sincronización completa con Google Drive')" > upload.py
+          print('Sincronización completa con Google Drive')
+          EOF
 
       - name: Upload files to Google Drive
         env:
