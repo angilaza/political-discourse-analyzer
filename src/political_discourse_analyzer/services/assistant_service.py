@@ -162,24 +162,24 @@ class AssistantService:
                     
                     "1. OBJETIVO DE LA RESPUESTA:\n"
                     "   - Tu respuesta se fundamentará en el análisis de los programas electorales disponibles.\n"
-                    "   - Deja claro que la información que presentas responde a la consulta realizada, por ejemplo, "
+                    "   - Deja claro que la información que presentas responde a la consulta realizada; por ejemplo, "
                     "     si se pregunta sobre propuestas en materia de energía, indica que respondes sobre ese tema.\n\n"
                     
                     "2. PRESENTACIÓN:\n"
                     "   - Comienza con una breve introducción que informe al usuario sobre el enfoque de la respuesta. "
                     "     Ejemplo: 'Esta respuesta se basa en el análisis de los programas electorales disponibles, de los que se extraen propuestas sobre [tema de la consulta].'\n"
-                    "   - Presenta cada propuesta en párrafos separados utilizando viñetas o numeración para facilitar la lectura.\n"
-                    "   - Utiliza párrafos cortos y separaciones claras para que el contenido sea fácilmente legible.\n\n"
+                    "   - Presenta cada propuesta en párrafos separados utilizando numeración o viñetas para facilitar la lectura.\n"
+                    "   - Utiliza párrafos cortos y separaciones claras.\n\n"
                     
                     "3. CONTENIDO DE CADA PROPUESTA:\n"
                     "   - Resume cada propuesta de forma concisa (limitada a 2-3 líneas) sin perder claridad.\n"
                     "   - Incluye en la descripción la ubicación precisa de la información, especificando el documento "
                     "     y la sección o página de donde se extrae, utilizando el siguiente formato:\n"
-                    "         > Fuente: [Nombre_del_documento]\n"
-                    "         > Sección: [Nombre_de_la_sección o página X]\n\n"
+                    "         • Fuente: [Nombre_del_documento]\n"
+                    "         • Sección: [Nombre_de_la_sección o página X]\n\n"
                     
                     "4. SECCIÓN DE REFERENCIAS:\n"
-                    "   - Al final de la respuesta, añade una sección titulada 'Fuentes:' o 'Referencias:'\n"
+                    "   - Al final, añade una sección titulada 'Fuentes:' o 'Referencias:'\n"
                     "   - En esta sección, lista de forma ordenada todas las fuentes utilizadas, en el orden en que "
                     "     aparecen en el cuerpo de la respuesta.\n\n"
                     
@@ -189,18 +189,18 @@ class AssistantService:
                     "          focalizándose en las propuestas sobre [tema].'\n\n"
                     "   - Propuestas (presentadas en párrafos separados o en lista):\n"
                     "         1. **[Partido] - [Título de la propuesta]**: Breve descripción de la propuesta.\n"
-                    "            > Fuente: [Documento]\n"
-                    "            > Sección: [Sección o página]\n\n"
+                    "            • Fuente: [Documento]\n"
+                    "            • Sección: [Sección o página]\n\n"
                     "         2. **[Otro Partido] - [Título de la propuesta]**: Breve descripción de la propuesta.\n"
-                    "            > Fuente: [Documento]\n"
-                    "            > Sección: [Sección o página]\n\n"
+                    "            • Fuente: [Documento]\n"
+                    "            • Sección: [Sección o página]\n\n"
                     "   - Sección final de referencias:\n"
                     "         Fuentes:\n"
                     "         - [Documento] - Sección: [Sección o página]\n"
                     "         - [Otro Documento] - Sección: [Sección o página]\n\n"
                     
                     "6. DIRECTRICES ADICIONALES:\n"
-                    "   - Responde de forma objetiva y sin añadir juicios personales.\n"
+                    "   - Responde de forma objetiva y sin emitir juicios personales.\n"
                     "   - Limita la respuesta a las 4-5 propuestas más relevantes según la consulta.\n"
                     "   - No agregues información que no esté respaldada por los documentos.\n"
                 )
@@ -222,7 +222,7 @@ class AssistantService:
                                 assistant_id=assistant_id,
                                 name=config["name"],
                                 instructions=config["instructions"],
-                                model="gpt-4-turbo-preview",
+                                model=self.settings.ai_settings.model,
                                 tools=[{"type": "file_search"}],
                                 tool_resources={"file_search": {"vector_store_ids": [self.vector_store.id]}},
                                 metadata={"mode": mode}
@@ -232,7 +232,7 @@ class AssistantService:
                             assistant = self.client.beta.assistants.create(
                                 name=config["name"],
                                 instructions=config["instructions"],
-                                model="gpt-4-turbo-preview",
+                                model=self.settings.ai_settings.model,
                                 tools=[{"type": "file_search"}],
                                 tool_resources={"file_search": {"vector_store_ids": [self.vector_store.id]}},
                                 metadata={"mode": mode}
@@ -242,7 +242,7 @@ class AssistantService:
                         assistant = self.client.beta.assistants.create(
                             name=config["name"],
                             instructions=config["instructions"],
-                            model="gpt-4-turbo-preview",
+                            model=self.settings.ai_settings.model,
                             tools=[{"type": "file_search"}],
                             tool_resources={"file_search": {"vector_store_ids": [self.vector_store.id]}},
                             metadata={"mode": mode}
@@ -259,15 +259,12 @@ class AssistantService:
     def _format_response(self, raw_response: str) -> str:
         """
         Reformatea la respuesta para mejorar su legibilidad.
-        
-        Se insertan saltos de línea antes de cada propuesta numerada y se formatean las secciones de cita:
-        - Se reemplaza "> Fuente:" por "• **Fuente:**"
-        - Se reemplaza "> Sección:" por "• **Sección:**"
         """
         formatted = re.sub(r'(?<!\n)(\d+\.\s*\*\*)', r'\n\n\1', raw_response)
-        formatted = re.sub(r'^\s*>+\s*Fuente:\s*', r'• **Fuente:** ', formatted, flags=re.MULTILINE)
-        formatted = re.sub(r'^\s*>+\s*Sección:\s*', r'• **Sección:** ', formatted, flags=re.MULTILINE)
+        #formatted = re.sub(r'^\s*>+\s*Fuente:\s*', r'• **Fuente:** ', formatted, flags=re.MULTILINE)
+        #formatted = re.sub(r'^\s*>+\s*Sección:\s*', r'• **Sección:** ', formatted, flags=re.MULTILINE)
         formatted = re.sub(r'(\nFuentes:)', r'\n\n\1', formatted)
+        formatted = re.sub(r'\n{2,}', '\n\n', formatted)
         lines = [line.strip() for line in formatted.splitlines() if line.strip()]
         formatted = "\n\n".join(lines)
         return formatted

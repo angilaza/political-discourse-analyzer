@@ -31,7 +31,7 @@ class ApplicationSettings(BaseModel):
         return cls(
             ai_settings=AISettings(
                 openai_api_key=openai_api_key,
-                model="gpt-4-turbo-preview"
+                model=os.getenv("MODEL_NAME", "gpt-4-turbo-preview")
             ),
             db_settings=DatabaseSettings(),
             documents_path=Path("data/programs")
