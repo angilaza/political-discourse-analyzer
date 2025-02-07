@@ -1,9 +1,21 @@
-frontend/
+# Python
 __pycache__/
 *.pyc
+
+# Excluir configuraciones de Git y GitHub
 .git
 .gitignore
+.github/
+
+# Excluir carpetas específicas para Railway
+frontend/
+
+# Excluir configuraciones locales y entornos virtuales
 .env
 .venv
+
+# Excluir dependencias locales (serán instaladas dentro del contenedor)
 node_modules/
-.github/ 
+
+# Otros archivos innecesarios para el contenedor
+.DS_Store
