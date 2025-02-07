@@ -42,13 +42,28 @@ jobs:
 
           folder_id = '1DPYh6fza2995GHNd8xZy_K5BBtHELbZg'
 
-          for file in os.listdir('.'):
-              if os.path.isfile(file) and file not in ['upload.py', '.github', '.git']:
-                  file_metadata = {'name': file, 'parents': [folder_id]}
-                  media = MediaFileUpload(file, resumable=True)
-                  service.files().create(body=file_metadata, media_body=media).execute()
+          def upload_to_drive(local_path, parent_folder_id):
+              for root, dirs, files in os.walk(local_path):
+                  for directory in dirs:
+                      folder_metadata = {
+                          'name': directory,
+                          'mimeType': 'application/vnd.google-apps.folder',
+                          'parents': [parent_folder_id]
+                      }
+                      folder = service.files().create(body=folder_metadata, fields='id').execute()
+                      folder_id = folder.get('id')
+                      upload_to_drive(os.path.join(root, directory), folder_id)
 
-          print('Subida a Google Drive completada')" > upload.py
+                  for file in files:
+                      file_path = os.path.join(root, file)
+                      file_metadata = {'name': file, 'parents': [parent_folder_id]}
+                      media = MediaFileUpload(file_path, resumable=True)
+                      service.files().create(body=file_metadata, media_body=media).execute()
+                      print(f'Subido: {file_path}')
+
+          # Subir todos los archivos y carpetas
+          upload_to_drive('.', folder_id)
+          print('Subida completa a Google Drive')" > upload.py
 
       - name: Upload files to Google Drive
         env:
