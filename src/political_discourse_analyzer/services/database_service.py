@@ -47,15 +47,16 @@ class DatabaseService:
                 raise ValueError("DATABASE_URL no está configurada en producción")
             return db_url.replace("postgres://", "postgresql://", 1)
         
-        # Configuración local
-        return (
-            f"postgresql://"
-            f"{os.getenv('DB_USER', 'postgres')}:"
-            f"{os.getenv('DB_PASSWORD', '')}@"
-            f"{os.getenv('DB_HOST', 'localhost')}:"
-            f"{os.getenv('DB_PORT', '5432')}/"
-            f"{os.getenv('DB_NAME', 'political_discourse')}"
-        )
+        # Local development connection
+        db_params = {
+            'user': os.getenv('DB_USER', 'postgres'),
+            'password': os.getenv('DB_PASSWORD', ''),
+            'host': os.getenv('DB_HOST', 'localhost'),
+            'port': os.getenv('DB_PORT', '5432'),
+            'database': os.getenv('DB_NAME', 'political_discourse')
+        }
+        
+        return f"postgresql://{db_params['user']}:{db_params['password']}@{db_params['host']}:{db_params['port']}/{db_params['database']}"
 
     async def save_conversation(self, thread_id: str, mode: str) -> Conversation:
         """

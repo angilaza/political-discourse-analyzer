@@ -148,61 +148,42 @@ class AssistantService:
                 time.sleep(1)
 
     def init_assistants(self):
-        """
-        Inicializa o recupera los asistentes.
-        """
-        print("Inicializando asistentes...")
         assistant_configs = {
             "neutral": {
                 "name": "Asistente de Programas Electorales",
                 "instructions": (
-                    "Eres un asistente especializado en analizar y explicar programas electorales, basándote "
-                    "estrictamente en la información contenida en los documentos oficiales. Responde únicamente "
-                    "con datos objetivos extraídos de dichos documentos y evita emitir opiniones personales.\n\n"
+                    "Eres un asistente especializado en analizar programas electorales. "
+                    "Estructura tus respuestas siguiendo este formato:\n\n"
                     
-                    "1. OBJETIVO DE LA RESPUESTA:\n"
-                    "   - Tu respuesta se fundamentará en el análisis de los programas electorales disponibles.\n"
-                    "   - Deja claro que la información que presentas responde a la consulta realizada; por ejemplo, "
-                    "     si se pregunta sobre propuestas en materia de energía, indica que respondes sobre ese tema.\n\n"
+                    "1. ESTRUCTURA:\n"
+                    "- Introducción breve (1 línea)\n"
+                    "- Lista numerada de propuestas\n"
+                    "- Referencias al final\n\n"
                     
-                    "2. PRESENTACIÓN:\n"
-                    "   - Comienza con una breve introducción que informe al usuario sobre el enfoque de la respuesta. "
-                    "     Ejemplo: 'Esta respuesta se basa en el análisis de los programas electorales disponibles, de los que se extraen propuestas sobre [tema de la consulta].'\n"
-                    "   - Presenta cada propuesta en párrafos separados utilizando numeración o viñetas para facilitar la lectura.\n"
-                    "   - Utiliza párrafos cortos y separaciones claras.\n\n"
+                    "2. FORMATO DE PROPUESTAS:\n"
+                    "Estructura tus respuestas así:\n\n"
                     
-                    "3. CONTENIDO DE CADA PROPUESTA:\n"
-                    "   - Resume cada propuesta de forma concisa (limitada a 2-3 líneas) sin perder claridad.\n"
-                    "   - Incluye en la descripción la ubicación precisa de la información, especificando el documento "
-                    "     y la sección o página de donde se extrae, utilizando el siguiente formato:\n"
-                    "         • Fuente: [Nombre_del_documento]\n"
-                    "         • Sección: [Nombre_de_la_sección o página X]\n\n"
+                    "Las principales propuestas [del partido] para [tema] son:\n\n"
                     
-                    "4. SECCIÓN DE REFERENCIAS:\n"
-                    "   - Al final, añade una sección titulada 'Fuentes:' o 'Referencias:'\n"
-                    "   - En esta sección, lista de forma ordenada todas las fuentes utilizadas, en el orden en que "
-                    "     aparecen en el cuerpo de la respuesta.\n\n"
+                    "1. **[Título de la Propuesta]**:\n"
+                    "   - [Descripción concisa] (Documento.pdf, Sección o página X)\n\n"
                     
-                    "5. EJEMPLO DE ESTRUCTURA DE RESPUESTA:\n"
-                    "   - Introducción breve:\n"
-                    "         'Esta respuesta se basa en el análisis de los programas electorales disponibles, "
-                    "          focalizándose en las propuestas sobre [tema].'\n\n"
-                    "   - Propuestas (presentadas en párrafos separados o en lista):\n"
-                    "         1. **[Partido] - [Título de la propuesta]**: Breve descripción de la propuesta.\n"
-                    "            • Fuente: [Documento]\n"
-                    "            • Sección: [Sección o página]\n\n"
-                    "         2. **[Otro Partido] - [Título de la propuesta]**: Breve descripción de la propuesta.\n"
-                    "            • Fuente: [Documento]\n"
-                    "            • Sección: [Sección o página]\n\n"
-                    "   - Sección final de referencias:\n"
-                    "         Fuentes:\n"
-                    "         - [Documento] - Sección: [Sección o página]\n"
-                    "         - [Otro Documento] - Sección: [Sección o página]\n\n"
+                    "2. **[Siguiente Propuesta]**:\n"
+                    "   - [Descripción] (Documento.pdf, Sección o página X)\n\n"
                     
-                    "6. DIRECTRICES ADICIONALES:\n"
-                    "   - Responde de forma objetiva y sin emitir juicios personales.\n"
-                    "   - Limita la respuesta a las 4-5 propuestas más relevantes según la consulta.\n"
-                    "   - No agregues información que no esté respaldada por los documentos.\n"
+                    "Referencias:\n"
+                    "   - Documento: [Nombre_completo]\n\n"
+                    
+                    "3. REGLAS:\n"
+                    "- Citas integradas en el texto entre paréntesis\n"
+                    "- Referencias completas al final\n"
+                    "- Usa numeración continua (1, 2, 3...)\n"
+                    "- Máximo 4-5 propuestas relevantes\n"
+                    "- Solo información respaldada por documentos\n"
+                    "- Sin espacios dobles entre elementos\n"
+                    "- Descripciones concisas y comprensivas para cualquier público\n"
+                    "- No inventes páginas o información\n"
+                    "- No atribuyas propuestas a partidos que no las mencionen\n"
                 )
             }
         }
@@ -258,22 +239,36 @@ class AssistantService:
 
     def _format_response(self, raw_response: str) -> str:
         """
-        Reformatea la respuesta para mejorar su legibilidad.
+        Reformatea la respuesta para mejorar su legibilidad y el formato Markdown.
         """
-        formatted = re.sub(r'(?<!\n)(\d+\.\s*\*\*)', r'\n\n\1', raw_response)
-        formatted = re.sub(r'^\s*>+\s*Fuente:\s*', r'• **Fuente:** ', formatted, flags=re.MULTILINE)
-        formatted = re.sub(r'^\s*>+\s*Sección:\s*', r'• **Sección:** ', formatted, flags=re.MULTILINE)
-        formatted = re.sub(r'(\nFuentes:)', r'\n\n\1', formatted)
-        formatted = re.sub(r'\n{4,}', '\n\n', formatted)
-        lines = [line.strip() for line in formatted.splitlines() if line.strip()]
-        formatted = "\n\n".join(lines)
+        # Eliminar los identificadores de citation
+        formatted = re.sub(r'\s*\【\d+:\d+†?source\】', '', raw_response)
+        
+        # Convertir los puntos en una lista numerada continua
+        lines = formatted.split('\n')
+        counter = 1
+        new_lines = []
+        
+        for line in lines:
+            # Si es una línea que comienza con número, actualizarla con el contador
+            if re.match(r'^\d+\.\s*', line):
+                line = re.sub(r'^\d+\.', f"{counter}.", line)
+                counter += 1
+            
+            # Ajustar indentación de las fuentes
+            if 'Fuente:' in line:
+                line = f"    • {line.strip().replace('• Fuente:', 'Fuente:')}"
+            
+            new_lines.append(line)
+        
+        # Unir las líneas y eliminar espacios extra
+        formatted = '\n'.join(line for line in new_lines if line.strip())
+        
         return formatted
-
 
     async def process_query(self, query: str, mode: str = "neutral", thread_id: Optional[str] = None) -> dict:
         """
-        Procesa una consulta usando el asistente configurado, obtiene la respuesta por streaming,
-        la formatea y extrae las citas.
+        Procesa una consulta usando el asistente configurado y obtiene la respuesta.
         """
         if mode not in self.assistants:
             raise ValueError(f"Modo no válido: {mode}")
@@ -281,10 +276,10 @@ class AssistantService:
         try:
             # Crear o recuperar thread
             thread = (self.client.beta.threads.retrieve(thread_id)
-                      if thread_id else self.client.beta.threads.create())
+                    if thread_id else self.client.beta.threads.create())
 
             context_prompts = {
-                "neutral": "Por favor, proporciona una respuesta estructurada y formateada, incluyendo citas específicas de los documentos.",
+                "neutral": "Por favor, proporciona una respuesta estructurada con citas específicas de los documentos.",
                 "personal": "Por favor, explica esto de forma conversacional pero incluyendo referencias específicas."
             }
             full_query = f"{context_prompts[mode]}\n\nConsulta del usuario: {query}"
@@ -296,7 +291,7 @@ class AssistantService:
                 content=full_query
             )
 
-            # Usar streaming para crear el run y procesar la respuesta en tiempo real
+            # Procesar la respuesta con streaming
             event_handler = MyEventHandler()
             with self.client.beta.threads.runs.stream(
                 thread_id=thread.id,
@@ -305,30 +300,28 @@ class AssistantService:
             ) as stream:
                 stream.until_done()
 
-            # Recuperar el mensaje final del thread
+            # Recuperar el mensaje final
             messages = self.client.beta.threads.messages.list(thread_id=thread.id)
             last_message = messages.data[0]
+            
+            # Extraer la respuesta y citas
+            response = {
+                'response': last_message.content[0].text.value,
+                'thread_id': thread.id,
+                'citations': []
+            }
 
-            # Extraer citas de las anotaciones (si las hay)
-            citations = []
+            # Extraer citas si existen
             annotations = getattr(last_message.content[0], 'annotations', []) or []
             for annotation in annotations:
                 if getattr(annotation, 'type', None) == "file_citation":
                     citation = {
                         'text': annotation.text,
-                        'file_citation': annotation.file_citation.quote,
+                        'quote': annotation.file_citation.quote,
                         'file_path': annotation.file_citation.file_path
                     }
-                    citations.append(citation)
+                    response['citations'].append(citation)
 
-            raw_response = last_message.content[0].text.value
-            formatted_response = self._format_response(raw_response)
-            
-            response = {
-                'response': formatted_response,
-                'thread_id': thread.id,
-                'citations': citations
-            }
             return response
 
         except Exception as e:

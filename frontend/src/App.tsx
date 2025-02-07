@@ -3,76 +3,94 @@ import { Send, History, Share2 } from 'lucide-react';
 import logo from './assets/logo.png';
 import ReactMarkdown from 'react-markdown';
 
+const API_URL = import.meta.env.MODE === 'development' ? 'http://localhost:8000' : 'https://political-discourse-analyzer-production.up.railway.app';
 interface Message {
-  text: string;
-  sender: 'user' | 'assistant';
-  timestamp: Date;
+ text: string;
+ sender: 'user' | 'assistant';
+ timestamp: Date;
 }
 
 interface MessageProps {
-  message: Message;
+ message: Message;
 }
 
 const MessageComponent: React.FC<MessageProps> = ({ message }) => (
   <div className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
     <div
-      style={{ whiteSpace: 'pre-wrap' }} // Esto respeta los saltos de línea
-      className={`max-w-3xl p-4 rounded-lg ${message.sender === 'user'
-        ? 'bg-blue-600 text-white'
-        : 'bg-white border shadow-sm'
-        }`}
+      className={`max-w-3xl p-4 rounded-lg ${
+        message.sender === 'user'
+          ? 'bg-blue-600 text-white'
+          : 'bg-white border shadow-sm'
+      }`}
     >
-      <ReactMarkdown>{message.text}</ReactMarkdown>
+      <ReactMarkdown
+        components={{
+          // Configurar cómo se renderizan los elementos Markdown
+          h1: ({children}) => <h1 className="text-xl font-bold mb-4">{children}</h1>,
+          h2: ({children}) => <h2 className="text-lg font-bold mb-3">{children}</h2>,
+          ol: ({children}) => <ol className="list-decimal space-y-4 ml-4">{children}</ol>,
+          ul: ({children}) => <ul className="list-disc space-y-2 ml-4">{children}</ul>,
+          li: ({children}) => <li className="mb-2">{children}</li>,
+          strong: ({children}) => <strong className="font-bold">{children}</strong>,
+          p: ({children}) => <p className="mb-2">{children}</p>,
+          blockquote: ({children}) => (
+            <blockquote className="border-l-4 border-gray-300 pl-4 italic my-2">
+              {children}
+            </blockquote>
+          )
+        }}
+        className="space-y-4"
+      >
+        {message.text}
+      </ReactMarkdown>
     </div>
   </div>
 );
 
 const App: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputText, setInputText] = useState('');
-  const [mode, setMode] = useState<'neutral' | 'personal'>('neutral');
-  const [isLoading, setIsLoading] = useState(false);
+ const [messages, setMessages] = useState<Message[]>([]);
+ const [inputText, setInputText] = useState('');
+ const [mode, setMode] = useState<'neutral' | 'personal'>('neutral');
+ const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputText.trim() || isLoading) return;
+ const handleSubmit = async (e: React.FormEvent) => {
+   e.preventDefault();
+   if (!inputText.trim() || isLoading) return;
 
-    const newMessage: Message = {
-      text: inputText,
-      sender: 'user',
-      timestamp: new Date()
-    };
+   setMessages(prev => [...prev, {
+     text: inputText,
+     sender: 'user',
+     timestamp: new Date()
+   }]);
+   setInputText('');
+   setIsLoading(true);
 
-    setMessages(prev => [...prev, newMessage]);
-    setInputText('');
-    setIsLoading(true);
+   try {
+     const response = await fetch(`${API_URL}/search`, {
+       method: 'POST',
+       headers: {
+         'Content-Type': 'application/json'
+       },
+       body: JSON.stringify({ query: inputText, mode })
+     });
 
-    try {
-      const response = await fetch('https://political-discourse-analyzer-production.up.railway.app/search', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ query: inputText, mode })
-      });
-
-      const data = await response.json();
-
-      setMessages(prev => [...prev, {
-        text: data.response || "Lo siento, hubo un error al procesar tu pregunta.",
-        sender: 'assistant',
-        timestamp: new Date()
-      }]);
-    } catch (error) {
-      setMessages(prev => [...prev, {
-        text: "Lo siento, ocurrió un error al comunicarse con el servidor.",
-        sender: 'assistant',
-        timestamp: new Date()
-      }]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+     const data = await response.json();
+     
+     setMessages(prev => [...prev, {
+       text: data.response || "Lo siento, hubo un error al procesar tu pregunta.",
+       sender: 'assistant',
+       timestamp: new Date()
+     }]);
+   } catch (error) {
+     setMessages(prev => [...prev, {
+       text: "Lo siento, ocurrió un error al comunicarse con el servidor.",
+       sender: 'assistant',
+       timestamp: new Date()
+     }]);
+   } finally {
+     setIsLoading(false);
+   }
+ };
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">

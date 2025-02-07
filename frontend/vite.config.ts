@@ -5,7 +5,12 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: true,
-    port: Number(process.env.PORT) || 3000,
-    allowedHosts: ['healthcheck.railway.app', 'agoradigital.up.railway.app']
+    port: 3000,
+    proxy: {
+      '/search': {
+        target: 'http://localhost:8000',
+        changeOrigin: true
+      }
+    }
   }
 })
