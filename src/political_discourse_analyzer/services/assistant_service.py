@@ -261,10 +261,10 @@ class AssistantService:
         Reformatea la respuesta para mejorar su legibilidad.
         """
         formatted = re.sub(r'(?<!\n)(\d+\.\s*\*\*)', r'\n\n\1', raw_response)
-        #formatted = re.sub(r'^\s*>+\s*Fuente:\s*', r'• **Fuente:** ', formatted, flags=re.MULTILINE)
-        #formatted = re.sub(r'^\s*>+\s*Sección:\s*', r'• **Sección:** ', formatted, flags=re.MULTILINE)
+        formatted = re.sub(r'^\s*>+\s*Fuente:\s*', r'• **Fuente:** ', formatted, flags=re.MULTILINE)
+        formatted = re.sub(r'^\s*>+\s*Sección:\s*', r'• **Sección:** ', formatted, flags=re.MULTILINE)
         formatted = re.sub(r'(\nFuentes:)', r'\n\n\1', formatted)
-        formatted = re.sub(r'\n{2,}', '\n\n', formatted)
+        formatted = re.sub(r'\n{4,}', '\n\n', formatted)
         lines = [line.strip() for line in formatted.splitlines() if line.strip()]
         formatted = "\n\n".join(lines)
         return formatted
