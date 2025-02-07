@@ -27,7 +27,9 @@ jobs:
         run: |
           echo "from google.oauth2.service_account import Credentials
           from googleapiclient.discovery import build
+          from googleapiclient.http import MediaFileUpload
           import os
+          import json
 
           SCOPES = ['https://www.googleapis.com/auth/drive.file']
           creds_json = os.environ.get('GDRIVE_CREDENTIALS')
@@ -35,13 +37,13 @@ jobs:
           if not creds_json:
               raise Exception('GDRIVE_CREDENTIALS no está definido')
 
-          creds = Credentials.from_service_account_info(eval(creds_json), scopes=SCOPES)
+          creds = Credentials.from_service_account_info(json.loads(creds_json), scopes=SCOPES)
           service = build('drive', 'v3', credentials=creds)
 
           folder_id = '1DPYh6fza2995GHNd8xZy_K5BBtHELbZg'
 
           for file in os.listdir('.'):
-              if os.path.isfile(file):
+              if os.path.isfile(file) and file not in ['upload.py', '.github', '.git']:
                   file_metadata = {'name': file, 'parents': [folder_id]}
                   media = MediaFileUpload(file, resumable=True)
                   service.files().create(body=file_metadata, media_body=media).execute()
