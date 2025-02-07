@@ -44,7 +44,7 @@ jobs:
 
           # Función para borrar contenido de una carpeta en Google Drive
           def clear_drive_folder(service, folder_id):
-              query = f"'{folder_id}' in parents"
+              query = f\"'{folder_id}' in parents\"
               results = service.files().list(q=query, fields='files(id, name)').execute()
               files = results.get('files', [])
               for file in files:
@@ -68,7 +68,7 @@ jobs:
           upload_to_drive('.', folder_id)
 
           print('Sincronización completa con Google Drive')" > upload.py
-          
+
       - name: Upload files to Google Drive
         env:
           GDRIVE_CREDENTIALS: ${{ secrets.GDRIVE_CREDENTIALS }}
