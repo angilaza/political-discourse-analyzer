@@ -31,6 +31,7 @@ jobs:
           from googleapiclient.http import MediaFileUpload
           import os
           import json
+          import subprocess
 
           SCOPES = ['https://www.googleapis.com/auth/drive']
           creds_json = os.environ.get('GDRIVE_CREDENTIALS')
@@ -51,28 +52,31 @@ jobs:
               
               # Depurar estructura de archivos obtenidos
               for file in files:
-                  print(f"Archivo encontrado: {file}")  # Depuración para ver el contenido de 'file'
+                  print(f"Archivo encontrado: {file}")
                   if 'name' in file:
                       print(f'Borrado: {file["name"]}')
                   else:
                       print('Error: El archivo no contiene un campo "name".')
                   service.files().delete(fileId=file['id']).execute()
 
-          # Función para subir contenido a Google Drive
-          def upload_to_drive(local_path, parent_folder_id):
-              for root, dirs, files in os.walk(local_path):
-                  for file in files:
-                      file_path = os.path.join(root, file)
-                      file_metadata = {'name': file, 'parents': [parent_folder_id]}
-                      media = MediaFileUpload(file_path, resumable=True)
-                      service.files().create(body=file_metadata, media_body=media).execute()
-                      print(f'Subido: {file_path}')
+          # Función para subir únicamente los archivos versionados en Git
+          def upload_tracked_files(parent_folder_id):
+              # Obtener la lista de archivos rastreados
+              tracked_files = subprocess.check_output(["git", "ls-files"]).decode().splitlines()
+              for file in tracked_files:
+                  # Excluir este script para evitar subirlo
+                  if os.path.basename(file) == 'upload.py':
+                      continue
+                  file_metadata = {'name': os.path.basename(file), 'parents': [parent_folder_id]}
+                  media = MediaFileUpload(file, resumable=True)
+                  service.files().create(body=file_metadata, media_body=media).execute()
+                  print(f'Subido: {file}')
 
           # Borrar contenido existente en la carpeta de Google Drive
           clear_drive_folder(service, folder_id)
 
-          # Subir archivos actualizados
-          upload_to_drive('.', folder_id)
+          # Subir los archivos versionados
+          upload_tracked_files(folder_id)
 
           print('Sincronización completa con Google Drive')
           EOF
@@ -81,4 +85,3 @@ jobs:
         env:
           GDRIVE_CREDENTIALS: ${{ secrets.GDRIVE_CREDENTIALS }}
         run: python upload.py
-
