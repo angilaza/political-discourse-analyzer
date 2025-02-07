@@ -47,9 +47,15 @@ jobs:
               query = f\"'{folder_id}' in parents\"
               results = service.files().list(q=query, fields='files(id, name)').execute()
               files = results.get('files', [])
+              
+              # Depurar estructura de archivos obtenidos
               for file in files:
+                  print(f'Archivo encontrado: {file}')  # Depuración para ver el contenido de 'file'
+                  if 'name' in file:
+                      print(f'Borrado: {file["name"]}')
+                  else:
+                      print('Error: El archivo no contiene un campo "name".')
                   service.files().delete(fileId=file['id']).execute()
-                  print(f'Borrado: {file["name"]}')
 
           # Función para subir contenido a Google Drive
           def upload_to_drive(local_path, parent_folder_id):
