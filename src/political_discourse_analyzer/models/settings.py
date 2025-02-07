@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 from pathlib import Path
+import os
 
 class AISettings(BaseModel):
     openai_api_key: Optional[str] = Field(None, description="OpenAI API key")
