@@ -8,6 +8,7 @@ interface Message {
  text: string;
  sender: 'user' | 'assistant';
  timestamp: Date;
+ thread_id?: string;
 }
 
 interface MessageProps {
@@ -48,53 +49,70 @@ const MessageComponent: React.FC<MessageProps> = ({ message }) => (
 );
 
 const App: React.FC = () => {
- const [messages, setMessages] = useState<Message[]>([]);
- const [inputText, setInputText] = useState('');
- const [mode, setMode] = useState<'neutral' | 'personal'>('neutral');
- const [isLoading, setIsLoading] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputText, setInputText] = useState('');
+  const [mode, setMode] = useState<'neutral' | 'personal'>('neutral');
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
 
- const handleSubmit = async (e: React.FormEvent) => {
-   e.preventDefault();
-   if (!inputText.trim() || isLoading) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputText.trim() || isLoading) return;
 
-   setMessages(prev => [...prev, {
-     text: inputText,
-     sender: 'user',
-     timestamp: new Date()
-   }]);
-   setInputText('');
-   setIsLoading(true);
+    setMessages(prev => [...prev, {
+      text: inputText,
+      sender: 'user',
+      timestamp: new Date()
+    }]);
+    setInputText('');
+    setIsLoading(true);
 
-   try {
-     const response = await fetch(`${API_URL}/search`, {
-       method: 'POST',
-       headers: {
-         'Content-Type': 'application/json'
-       },
-       body: JSON.stringify({ query: inputText, mode })
-     });
+    try {
+      const response = await fetch(`${API_URL}/search`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          query: inputText, 
+          mode,
+          thread_id: currentThreadId 
+        })
+      });
 
-     const data = await response.json();
-     
-     setMessages(prev => [...prev, {
-       text: data.response || "Lo siento, hubo un error al procesar tu pregunta.",
-       sender: 'assistant',
-       timestamp: new Date()
-     }]);
-   } catch (error) {
-     setMessages(prev => [...prev, {
-       text: "Lo siento, ocurrió un error al comunicarse con el servidor.",
-       sender: 'assistant',
-       timestamp: new Date()
-     }]);
-   } finally {
-     setIsLoading(false);
-   }
- };
+      const data = await response.json();
+      
+      // Guardar el thread_id si es una nueva conversación
+      if (!currentThreadId) {
+        setCurrentThreadId(data.thread_id);
+      }
+
+      setMessages(prev => [...prev, {
+        text: data.response || "Lo siento, hubo un error al procesar tu pregunta.",
+        sender: 'assistant',
+        timestamp: new Date(),
+        thread_id: data.thread_id
+      }]);
+    } catch (error) {
+      setMessages(prev => [...prev, {
+        text: "Lo siento, ocurrió un error al comunicarse con el servidor.",
+        sender: 'assistant',
+        timestamp: new Date()
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Añadir función para limpiar la conversación
+  const handleNewConversation = () => {
+    setMessages([]);
+    setCurrentThreadId(null);
+  };
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
-      {/* Header */}
+      {/* Header con botón de nueva conversación */}
       <header className="flex items-center justify-between p-4 bg-white border-b">
         <div className="flex items-center gap-3">
           <img src={logo} alt="Logo" className="w-10 h-10" />
@@ -106,6 +124,12 @@ const App: React.FC = () => {
           </div>
         </div>
         <div className="flex gap-2">
+          <button 
+            onClick={handleNewConversation}
+            className="px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+          >
+            Nueva Conversación
+          </button>
           <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
             <History className="w-5 h-5" />
           </button>

@@ -4,7 +4,7 @@ Una herramienta de análisis de discursos políticos mediante IA que permite exp
 
 ## 📌 Visión General
 
-Political Discourse Analyzer es una herramienta innovadora diseñada para hacer más accesible y comprensible el análisis de programas electorales mediante el uso de inteligencia artificial. Esta aplicación permite a los usuarios interactuar con documentos políticos complejos de una manera intuitiva y conversacional.
+Political Discourse Analyzer es una herramienta diseñada para hacer más accesible y comprensible el análisis de programas electorales mediante el uso de inteligencia artificial. Esta aplicación permite a los usuarios interactuar con documentos políticos complejos de una manera intuitiva y conversacional.
 
 ## 🎯 Modos de Interacción
 
@@ -26,7 +26,7 @@ La aplicación ofrece dos modos distintos de análisis:
 
 ### Backend
 
-- **FastAPI**: Framework web moderno para APIs
+- **FastAPI**: Framework web para APIs
 - **OpenAI Assistants API**: Procesamiento de lenguaje natural
 - **PostgreSQL**: Base de datos para almacenamiento
 - **SQLAlchemy**: ORM para gestión de base de datos
@@ -37,6 +37,7 @@ La aplicación ofrece dos modos distintos de análisis:
 - **TypeScript**: Tipado estático
 - **Tailwind CSS**: Estilos y diseño
 - **React Hooks**: Gestión de estado
+- **Contexto Conversacional**: Manejo de sesiones y threads de conversación
 
 ## 🚀 Instalación y Configuración
 
