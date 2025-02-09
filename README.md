@@ -4,11 +4,11 @@ Una herramienta de análisis de discursos políticos mediante IA que permite exp
 
 ## 📌 Visión General
 
-Political Discourse Analyzer es una herramienta diseñada para hacer más accesible y comprensible el análisis de programas electorales mediante el uso de inteligencia artificial. Esta aplicación permite a los usuarios interactuar con documentos políticos complejos de una manera intuitiva y conversacional.
+Political Discourse Analyzer es una herramienta innovadora diseñada para hacer más accesible y comprensible el análisis de programas electorales mediante el uso de inteligencia artificial. Esta aplicación no solo permite a los usuarios interactuar con documentos políticos complejos de manera intuitiva, sino que también proporciona análisis profundos sobre las inquietudes ciudadanas y patrones de consulta.
 
-## 🎯 Modos de Interacción
+## 🎯 Funcionalidades Principales
 
-La aplicación ofrece dos modos distintos de análisis:
+### Interacción con Programas Electorales
 
 - **Modo Programas Electorales**
   - Análisis objetivo basado estrictamente en los documentos
@@ -16,20 +16,38 @@ La aplicación ofrece dos modos distintos de análisis:
   - Ideal para investigación y consulta factual
   - Mantiene la neutralidad en las explicaciones
 
-- **Modo Perspectiva Personal**
+- **Modo Perspectiva Personal** (En desarrollo)
   - Enfoque contextualizado y conversacional
   - Explicaciones adaptadas al usuario
   - Relaciona diferentes aspectos de las propuestas
   - Facilita la comprensión de implicaciones prácticas
+
+### Análisis de Consultas Ciudadanas
+
+- **Análisis Temático Multi-método**
+  - Análisis mediante embeddings de OpenAI
+  - Procesamiento con GPT-4 para comprensión contextual
+  - Análisis lingüístico con spaCy
+  - Categorización temática avanzada
+
+- **Métricas de Engagement**
+  - Seguimiento de patrones de conversación
+  - Análisis de duración de interacciones
+  - Estadísticas de seguimiento de temas
+  - Métricas de participación ciudadana
 
 ## 🏗️ Arquitectura Técnica
 
 ### Backend
 
 - **FastAPI**: Framework web para APIs
-- **OpenAI Assistants API**: Procesamiento de lenguaje natural
+- **OpenAI API**:
+  - Assistants API para procesamiento conversacional
+  - Embeddings para análisis semántico
 - **PostgreSQL**: Base de datos para almacenamiento
 - **SQLAlchemy**: ORM para gestión de base de datos
+- **spaCy**: Procesamiento de lenguaje natural
+- **scikit-learn**: Análisis de similitud y procesamiento de texto
 
 ### Frontend
 
@@ -212,7 +230,7 @@ GET /
 
 Retorna el estado actual del servicio.
 
-### Consultas
+### Consultas Conversacionales
 
 ```bash
 POST /search
@@ -225,9 +243,49 @@ Ejemplo de payload:
 ```json
 {
   "query": "¿Qué propone el PSOE en materia de vivienda?",
-  "mode": "neutral"
+  "mode": "neutral",
+  "thread_id": "optional-thread-id"
 }
 ```
+
+### Análisis y Estadísticas
+
+```bash
+# Informe completo de análisis
+GET /analytics/report
+GET /analytics/report?start_date=2024-01-01&end_date=2024-02-01
+
+# Análisis específico de temas
+GET /analytics/topics
+
+# Métricas de engagement
+GET /analytics/engagement
+
+# Diagnóstico del sistema
+GET /diagnostic/db
+```
+
+### Endpoints de Análisis
+
+Los endpoints de análisis proporcionan diferentes niveles de información:
+
+1. **Informe Completo** (`/analytics/report`)
+   - Distribución temática de consultas
+   - Métricas de engagement
+   - Estadísticas temporales
+   - Análisis de complejidad de consultas
+
+2. **Análisis Temático** (`/analytics/topics`)
+   - Análisis mediante embeddings
+   - Análisis LLM con GPT-4
+   - Análisis lingüístico con spaCy
+   - Distribución combinada de temas
+
+3. **Métricas de Engagement** (`/analytics/engagement`)
+   - Promedio de interacciones por conversación
+   - Duración de conversaciones
+   - Tasa de seguimiento
+   - Estadísticas de participación
 
 ## ☁️ Despliegue en Railway
 
@@ -293,19 +351,7 @@ black src/
 ruff check src/
 ```
 
-## 🤝 Contribuir
-
-1. Fork el repositorio
-2. Crear rama para feature: `git checkout -b feature/NuevaCaracteristica`
-3. Commit cambios: `git commit -m 'Añadir nueva característica'`
-4. Push a la rama: `git push origin feature/NuevaCaracteristica`
-5. Abrir Pull Request
-
-## 📝 Licencia
-
-[MIT](LICENSE)
-
-## 👥 Autores
+## 👤 Autor
 
 Angélica Laza - <angi.laza@hotmail.es>
 
