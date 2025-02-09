@@ -4,6 +4,12 @@ FROM python:3.11-slim
 # Establecer directorio de trabajo
 WORKDIR /app
 
+# Establecer variables de entorno
+ENV POETRY_HOME="/opt/poetry" \
+    POETRY_VERSION=1.7.1 \
+    POETRY_VIRTUALENVS_CREATE=false \
+    PATH="/opt/poetry/bin:$PATH"
+
 # Instalar dependencias del sistema necesarias
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -11,13 +17,11 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalar Poetry
-RUN curl -sSL https://install.python-poetry.org | python3 -
+RUN curl -sSL https://install.python-poetry.org | python3 - \
+    && ln -s /opt/poetry/bin/poetry /usr/local/bin/poetry
 
 # Copiar archivos de configuración de Poetry
 COPY pyproject.toml poetry.lock ./
-
-# Configurar Poetry para no crear un entorno virtual
-RUN poetry config virtualenvs.create false
 
 # Instalar dependencias
 RUN poetry install --no-dev --no-interaction --no-ansi
