@@ -8,12 +8,13 @@ from typing import List, Optional
 from dotenv import load_dotenv
 import logging
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Importaciones locales
 from political_discourse_analyzer.models.settings import ApplicationSettings
 from political_discourse_analyzer.services.assistant_service import AssistantService
 from political_discourse_analyzer.services.database_service import DatabaseService
+from political_discourse_analyzer.services.analytics_service import AnalyticsService
 
 # Configurar logging
 logging.basicConfig(
@@ -55,6 +56,7 @@ try:
     settings = ApplicationSettings.from_env(openai_api_key=os.getenv("OPENAI_API_KEY"))
     assistant_service = AssistantService(settings)
     db_service = DatabaseService()
+    analytics_service = AnalyticsService(db_service)
     
     # Initialize assistant service
     assistant_service.init_service()
@@ -132,6 +134,51 @@ async def database_diagnostic():
             "environment": os.getenv("ENVIRONMENT", "development"),
             "timestamp": datetime.utcnow().isoformat()
         }
+
+@app.get("/analytics/report")
+async def get_analytics_report(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None
+):
+    """
+    Genera un informe completo de análisis de las consultas.
+    Fechas en formato ISO: YYYY-MM-DD
+    """
+    try:
+        start = datetime.fromisoformat(start_date) if start_date else None
+        end = datetime.fromisoformat(end_date) if end_date else None
+        
+        report = await analytics_service.generate_comprehensive_report(start, end)
+        return report
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="Formato de fecha inválido. Use YYYY-MM-DD")
+    except Exception as e:
+        logger.error(f"Error generating analytics report: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/analytics/topics")
+async def get_topic_analysis(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None
+):
+    """Análisis de distribución de temas en las consultas."""
+    try:
+        start = datetime.fromisoformat(start_date) if start_date else None
+        end = datetime.fromisoformat(end_date) if end_date else None
+        
+        return await analytics_service.get_topic_distribution(start, end)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="Formato de fecha inválido. Use YYYY-MM-DD")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/analytics/engagement")
+async def get_engagement_metrics():
+    """Métricas de engagement de usuarios."""
+    try:
+        return await analytics_service.get_engagement_metrics()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
