@@ -3,11 +3,13 @@ import re
 import asyncio
 import os
 import logging
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, AsyncGenerator, Any
 from pathlib import Path
 import openai
 from political_discourse_analyzer.models.settings import ApplicationSettings
 from openai import AssistantEventHandler
+from openai.types.beta.threads import Run
+from openai.types.beta.assistant import Assistant
 
 logger = logging.getLogger(__name__)
 
@@ -266,64 +268,133 @@ class AssistantService:
         
         return formatted
 
-    async def process_query(self, query: str, mode: str = "neutral", thread_id: Optional[str] = None) -> dict:
-        """
-        Procesa una consulta usando el asistente configurado y obtiene la respuesta.
-        """
-        if mode not in self.assistants:
-            raise ValueError(f"Modo no válido: {mode}")
-
+    async def process_query(self, query: str, mode: str = "neutral", thread_id: Optional[str] = None):
+        """Procesa una consulta usando el asistente configurado y devuelve un stream de respuestas."""
         try:
-            # Crear o recuperar thread
-            thread = (self.client.beta.threads.retrieve(thread_id)
-                    if thread_id else self.client.beta.threads.create())
-
-            context_prompts = {
-                "neutral": "Por favor, proporciona una respuesta estructurada con citas específicas de los documentos.",
-                "personal": "Por favor, explica esto de forma conversacional pero incluyendo referencias específicas."
-            }
-            full_query = f"{context_prompts[mode]}\n\nConsulta del usuario: {query}"
+            logger.info(f"Iniciando consulta con modo {mode}")
             
-            # Enviar mensaje de consulta
+            # Crear o recuperar thread
+            if not thread_id:
+                thread = self.client.beta.threads.create()
+                thread_id = thread.id
+                logger.info(f"Nuevo thread creado: {thread_id}")
+            
+            # Crear mensaje
             self.client.beta.threads.messages.create(
-                thread_id=thread.id,
+                thread_id=thread_id,
                 role="user",
-                content=full_query
+                content=query
             )
 
-            # Procesar la respuesta con streaming
-            event_handler = MyEventHandler()
-            with self.client.beta.threads.runs.stream(
-                thread_id=thread.id,
-                assistant_id=self.assistants[mode],
-                event_handler=event_handler,
-            ) as stream:
-                stream.until_done()
+            # Crear run
+            run = self.client.beta.threads.runs.create(
+                thread_id=thread_id,
+                assistant_id=self.assistants[mode]
+            )
 
-            # Recuperar el mensaje final
-            messages = self.client.beta.threads.messages.list(thread_id=thread.id)
-            last_message = messages.data[0]
-            
-            # Extraer la respuesta y citas
-            response = {
-                'response': last_message.content[0].text.value,
-                'thread_id': thread.id,
-                'citations': []
-            }
+            # Poll y stream de la respuesta
+            while True:
+                run_status = self.client.beta.threads.runs.retrieve(
+                    thread_id=thread_id,
+                    run_id=run.id
+                )
 
-            # Extraer citas si existen
-            annotations = getattr(last_message.content[0], 'annotations', []) or []
-            for annotation in annotations:
-                if getattr(annotation, 'type', None) == "file_citation":
-                    citation = {
-                        'text': annotation.text,
-                        'quote': annotation.file_citation.quote,
-                        'file_path': annotation.file_citation.file_path
+                if run_status.status == 'completed':
+                    # Obtener el mensaje más reciente
+                    messages = self.client.beta.threads.messages.list(
+                        thread_id=thread_id,
+                        order="desc",
+                        limit=1
+                    )
+                    message = messages.data[0]
+
+                    if message.content:
+                        text = message.content[0].text.value
+                        words = text.split()
+                        
+                        # Enviar palabras individualmente para simular streaming
+                        for word in words:
+                            yield {
+                                'type': 'token',
+                                'content': word + ' '
+                            }
+                            await asyncio.sleep(0.05)  # Pequeña pausa para simular streaming natural
+
+                    yield {
+                        'type': 'done',
+                        'thread_id': thread_id
                     }
-                    response['citations'].append(citation)
+                    break
 
-            return response
+                elif run_status.status == 'failed':
+                    logger.error(f"Run failed: {run_status.last_error}")
+                    yield {
+                        'type': 'error',
+                        'message': run_status.last_error or 'Error procesando la consulta'
+                    }
+                    break
+
+                elif run_status.status in ['queued', 'in_progress']:
+                    await asyncio.sleep(0.5)
+                    continue
+
+                else:
+                    logger.warning(f"Estado inesperado: {run_status.status}")
+                    break
 
         except Exception as e:
             logger.error(f"Error en process_query: {str(e)}", exc_info=True)
-            raise
+            yield {
+                'type': 'error',
+                'message': str(e)
+            }
+
+    async def _process_stream_event(self, event, buffer: str, last_chunk: str):
+        """Procesa un evento del stream y devuelve los tokens correspondientes."""
+        if event.event == "thread.message.delta":
+            if hasattr(event.data, 'delta') and hasattr(event.data.delta, 'content'):
+                for content_item in event.data.delta.content:
+                    if content_item.type == "text":
+                        current_chunk = content_item.text.value
+                        
+                        # Eliminar superposiciones
+                        overlap = self._find_overlap(last_chunk, current_chunk)
+                        if overlap:
+                            current_chunk = current_chunk[len(overlap):]
+                        
+                        buffer += current_chunk
+                        
+                        # Si hay un delimitador, enviar el buffer
+                        if any(c in buffer for c in ' .,;:!?'):
+                            if buffer.strip():
+                                yield {
+                                    'type': 'token',
+                                    'content': buffer
+                                }
+                            buffer = ""
+                        
+                        last_chunk = current_chunk
+        
+        elif event.event == "thread.run.completed":
+            # Enviar cualquier texto restante
+            if buffer.strip():
+                yield {
+                    'type': 'token',
+                    'content': buffer
+                }
+            logger.info("Run completado")
+            yield {
+                'type': 'done',
+                'thread_id': event.data.thread_id
+            }
+
+    def _find_overlap(self, s1: str, s2: str) -> str:
+        """Encuentra la superposición más larga entre el final de s1 y el inicio de s2."""
+        if not s1 or not s2:
+            return ""
+        
+        min_len = min(len(s1), len(s2))
+        for i in range(min_len, 0, -1):
+            if s1[-i:] == s2[:i]:
+                return s1[-i:]
+        return ""

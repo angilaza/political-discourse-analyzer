@@ -9,6 +9,9 @@ from dotenv import load_dotenv
 import logging
 import sys
 from datetime import datetime, timedelta
+import json
+from fastapi.responses import StreamingResponse
+
 
 # Importaciones locales
 from political_discourse_analyzer.models.settings import ApplicationSettings
@@ -179,6 +182,40 @@ async def get_engagement_metrics():
         return await analytics_service.get_engagement_metrics()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/search/stream")
+async def search_documents_stream(query: SearchQuery):
+    if not query.query.strip():
+        raise HTTPException(status_code=400, detail="Query cannot be empty")
+        
+    async def generate():
+        try:
+            async for chunk in assistant_service.process_query(
+                query=query.query,
+                thread_id=query.thread_id,
+                mode=query.mode
+            ):
+                if chunk:
+                    # Asegurar que cada chunk termina con un doble salto de línea
+                    yield f"data: {json.dumps(chunk)}\n\n"
+        except Exception as e:
+            logger.error(f"Error generating response: {str(e)}")
+            error_chunk = {
+                "type": "error",
+                "message": str(e)
+            }
+            yield f"data: {json.dumps(error_chunk)}\n\n"
+
+    return StreamingResponse(
+        generate(), 
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Content-Type": "text/event-stream",
+            "X-Accel-Buffering": "no"  # Desactivar buffering
+        }
+    )
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))

@@ -58,7 +58,7 @@ const App: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim() || isLoading) return;
-
+  
     setMessages(prev => [...prev, {
       text: inputText,
       sender: 'user',
@@ -66,12 +66,20 @@ const App: React.FC = () => {
     }]);
     setInputText('');
     setIsLoading(true);
-
+  
+    const tempMessage = {
+      text: '',
+      sender: 'assistant' as const,
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, tempMessage]);
+  
     try {
-      const response = await fetch(`${API_URL}/search`, {
+      const response = await fetch(`${API_URL}/search/stream`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
           query: inputText, 
@@ -79,27 +87,54 @@ const App: React.FC = () => {
           thread_id: currentThreadId 
         })
       });
-
-      const data = await response.json();
-      
-      // Guardar el thread_id si es una nueva conversación
-      if (!currentThreadId) {
-        setCurrentThreadId(data.thread_id);
+  
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No reader available');
       }
-
-      setMessages(prev => [...prev, {
-        text: data.response || "Lo siento, hubo un error al procesar tu pregunta.",
-        sender: 'assistant',
-        timestamp: new Date(),
-        thread_id: data.thread_id
-      }]);
+  
+      let lastText = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+  
+        const chunk = new TextDecoder().decode(value);
+        const lines = chunk.split('\n');
+  
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = JSON.parse(line.slice(6));
+            
+            if (data.type === 'token') {
+              setMessages(prev => {
+                const newMessages = [...prev];
+                const lastMessage = newMessages[newMessages.length - 1];
+                const newContent = data.content.trim();
+                
+                // Evitar duplicados verificando que el nuevo contenido no esté ya al final
+                if (!lastMessage.text.endsWith(newContent)) {
+                  lastMessage.text = (lastMessage.text + ' ' + newContent).trim();
+                }
+                
+                return newMessages;
+              });
+            } else if (data.type === 'done') {
+              if (!currentThreadId) {
+                setCurrentThreadId(data.thread_id);
+              }
+              setIsLoading(false);
+              break;
+            }
+          }
+        }
+      }
     } catch (error) {
+      console.error('Error:', error);
       setMessages(prev => [...prev, {
-        text: "Lo siento, ocurrió un error al comunicarse con el servidor.",
+        text: "Error al comunicarse con el servidor.",
         sender: 'assistant',
         timestamp: new Date()
       }]);
-    } finally {
       setIsLoading(false);
     }
   };
