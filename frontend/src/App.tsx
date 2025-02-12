@@ -122,17 +122,19 @@ const ModeSelector: React.FC<{
         className={`px-4 py-2 rounded transition-colors ${
           mode === 'neutral'
             ? 'bg-blue-600 text-white'
-            : 'bg-gray-100 hover:bg-gray-200'
+            : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
         }`}
       >
         Programas Electorales
       </button>
       <button
         onClick={() => setMode('personal')}
+        disabled={mode === 'personal'}
+        title="En desarrollo"
         className={`px-4 py-2 rounded transition-colors ${
-          mode === 'personal'
-            ? 'bg-blue-600 text-white'
-            : 'bg-gray-100 hover:bg-gray-200'
+          mode === 'neutral'
+            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+            : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
         }`}
       >
         Perspectiva Personal
@@ -221,7 +223,7 @@ const App: React.FC = () => {
       </div>
 
       <ProgramsNotice />
-      
+
       <div className="flex-1 overflow-y-auto mb-4">
         <MessagesContainer messages={messages} isLoading={isLoading} onQuestionSelect={(question) => setInputText(question)}/>
       </div>
