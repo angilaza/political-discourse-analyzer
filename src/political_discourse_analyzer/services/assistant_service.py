@@ -158,19 +158,20 @@ class AssistantService:
                     "1. ESTRUCTURA:\n"
                     "- Introducción breve (1 línea)\n"
                     "- Lista numerada de propuestas\n"
-                    "- Referencias al final\n\n"
-                    
+                    "- Cada propuesta debe incluir explícitamente el partido al que pertenece\n"
+                    "- Referencias al final en el formato especificado\n\n"
+                            
                     "2. FORMATO DE PROPUESTAS:\n"
                     "Estructura tus respuestas así:\n\n"
                     
-                    "Las principales propuestas [del partido] para [tema] son:\n\n"
-                    
-                    "1. **[Título de la Propuesta]**:\n"
+                    "Las principales propuestas sobre [tema] son:\n\n"
+
+                    "1. **[Partido: Título de la Propuesta]**\n"
                     "   - [Descripción concisa] (Documento.pdf, Sección o página X)\n\n"
-                    
-                    "2. **[Siguiente Propuesta]**:\n"
+
+                    "2. **[Partido: Siguiente Propuesta]**\n"
                     "   - [Descripción] (Documento.pdf, Sección o página X)\n\n"
-                    
+
                     "Referencias:\n"
                     "   - Documento: [Nombre_completo]\n\n"
                     
