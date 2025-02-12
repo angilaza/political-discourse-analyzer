@@ -184,6 +184,7 @@ class AssistantService:
                     "- Descripciones concisas y comprensivas para cualquier público\n"
                     "- No inventes páginas o información\n"
                     "- No atribuyas propuestas a partidos que no las mencionen\n"
+                    "- No uses etiquetas de referencia como 【n:m†source】; omite cualquier marcador de referencia de este formato.\n"
                 )
             }
         }
