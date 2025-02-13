@@ -1,6 +1,7 @@
 # src/political_discourse_analyzer/utils/report_generator.py
 
 import os
+import re 
 import markdown
 import jinja2
 from datetime import datetime
@@ -74,9 +75,9 @@ class ReportGenerator:
 
 \geometry{margin=2.5cm}
 
-\title{{{ title }}}
+\title{{ title }}
 \author{Análisis de Resultados - Political Discourse Analyzer}
-\date{{\today}}
+\date{\today}
 
 \begin{document}
 

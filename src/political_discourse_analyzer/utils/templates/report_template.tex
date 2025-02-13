@@ -1,0 +1,34 @@
+
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{geometry}
+
+\geometry{margin=2.5cm}
+
+\title{{ title }}
+\author{Análisis de Resultados - Political Discourse Analyzer}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+{{ content }}
+
+\section{Visualizaciones}
+{% for image in images %}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{ {{image.path}} }
+    \caption{ {{image.description}} }
+    \label{fig:{{image.label}}}
+\end{figure}
+{% endfor %}
+
+\end{document}

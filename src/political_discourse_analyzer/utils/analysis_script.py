@@ -119,9 +119,36 @@ class CitizenInterestAnalyzer:
         try:
             # Crear DataFrame con la estructura correcta
             combined_analysis = topic_analysis['results']['combined_analysis']
+            if not combined_analysis:
+                return {
+                    'correlation_matrix': {},
+                    'centrality_measures': {'degree': {}, 'betweenness': {}, 'eigenvector': {}},
+                    'graph': nx.Graph()
+                }
+                
             topics_df = pd.DataFrame({
                 'value': combined_analysis.values()
             }, index=combined_analysis.keys())
+            
+            # Verifica que hay datos válidos
+            if topics_df['value'].isna().any() or len(topics_df) < 2:
+                return {
+                    'correlation_matrix': {},
+                    'centrality_measures': {'degree': {}, 'betweenness': {}, 'eigenvector': {}},
+                    'graph': nx.Graph()
+                }
+            
+            # Verifica que hay suficientes datos
+            if len(topics_df) <= 1:
+                return {
+                    'correlation_matrix': {},
+                    'centrality_measures': {
+                        'degree': {},
+                        'betweenness': {},
+                        'eigenvector': {}
+                    },
+                    'graph': nx.Graph()
+                }
             
             # Calcular matriz de correlación
             correlation_matrix = pd.DataFrame(
@@ -190,17 +217,21 @@ class CitizenInterestAnalyzer:
         for m1 in methods:
             for m2 in methods:
                 if m1 < m2:
-                    corr = pd.Series(data['results'][m1]).corr(pd.Series(data['results'][m2]))
-                    method_correlations[f"{m1}_vs_{m2}"] = corr
+                    data1 = pd.Series(data['results'].get(m1, {}))
+                    data2 = pd.Series(data['results'].get(m2, {}))
+                    
+                    # Evita errores si hay datos vacíos
+                    if len(data1) > 1 and len(data2) > 1:
+                        corr = data1.corr(data2)
+                        method_correlations[f"{m1}_vs_{m2}"] = corr
+                    else:
+                        method_correlations[f"{m1}_vs_{m2}"] = np.nan  # O algún otro valor de control
         
         metrics['method_correlations'] = method_correlations
         
         return metrics
 
-    def generate_analysis_visualizations(self, 
-                                    topic_analysis: Dict,
-                                    topic_relationships: Dict,
-                                    output_dir: str):
+    def generate_analysis_visualizations(self, topic_analysis: Dict, topic_relationships: Dict, output_dir: str):
         """Genera visualizaciones del análisis."""
         try:
             # 1. Comparación de métodos de análisis
@@ -234,9 +265,24 @@ class CitizenInterestAnalyzer:
             }
             
             for pos, (method, title) in methods.items():
-                data = pd.Series(topic_analysis['results'][method])
-                data = data.sort_values(ascending=True)
-                sns.barplot(x=data.values, y=data.index, ax=axes[pos[0]][pos[1]], palette='viridis')
+                # Convertir datos a DataFrame en el formato correcto
+                data = pd.DataFrame.from_dict(
+                    topic_analysis['results'][method], 
+                    orient='index',
+                    columns=['score']
+                ).reset_index()
+                data.columns = ['category', 'score']  # Renombrar columnas
+                
+                # Crear el gráfico de barras
+                sns.barplot(
+                    data=data,
+                    x='score',
+                    y='category',
+                    ax=axes[pos[0]][pos[1]],
+                    hue='category',
+                    legend=False, 
+                    palette='viridis'
+                )
                 axes[pos[0]][pos[1]].set_title(title)
                 axes[pos[0]][pos[1]].set_xlabel('Puntuación')
                 
@@ -250,15 +296,12 @@ class CitizenInterestAnalyzer:
             if len(G.nodes()) > 0:
                 pos = nx.spring_layout(G, k=1, iterations=50)
                 
-                # Nodos
                 nx.draw_networkx_nodes(G, pos, 
                                     node_color='lightblue',
                                     node_size=2000)
                 
-                # Etiquetas
                 nx.draw_networkx_labels(G, pos, font_size=10)
                 
-                # Enlaces con grosor basado en peso
                 nx.draw_networkx_edges(G, pos,
                                     width=[G[u][v]['weight'] * 2 for (u, v) in G.edges()],
                                     alpha=0.5)
@@ -287,75 +330,77 @@ class CitizenInterestAnalyzer:
         """Genera un reporte académico en formato markdown."""
         report = f"""# Análisis de Intereses Ciudadanos en Diálogos Políticos Asistidos por IA
 
-## Resumen
-Este estudio analiza {basic_stats['total_interactions']} interacciones ciudadanas con un sistema de diálogo 
-político asistido por IA, enfocándose en la identificación y comprensión de los principales temas de 
-interés ciudadano y la evaluación de diferentes métodos de análisis.
+            ## Resumen
+            Este estudio analiza {basic_stats['total_interactions']} interacciones ciudadanas con un sistema de diálogo 
+            político asistido por IA, enfocándose en la identificación y comprensión de los principales temas de 
+            interés ciudadano y la evaluación de diferentes métodos de análisis.
 
-## 1. Metodología
+            ## 1. Metodología
 
-### 1.1 Métodos de Análisis Implementados
-1. **Análisis por Embeddings**
-   - Modelo: text-embedding-3-small (OpenAI)
-   - Ventajas: Captura relaciones semánticas profundas
-   - Limitaciones: Dependencia del contexto del entrenamiento
+            ### 1.1 Métodos de Análisis Implementados
+            1. **Análisis por Embeddings**
+            - Modelo: text-embedding-3-small (OpenAI)
+            - Ventajas: Captura relaciones semánticas profundas
+            - Limitaciones: Dependencia del contexto del entrenamiento
 
-2. **Análisis por LLM**
-   - Modelo: GPT-4
-   - Ventajas: Comprensión contextual rica
-   - Limitaciones: Costo computacional, variabilidad en respuestas
+            2. **Análisis por LLM**
+            - Modelo: GPT-4
+            - Ventajas: Comprensión contextual rica
+            - Limitaciones: Costo computacional, variabilidad en respuestas
 
-3. **Análisis Lingüístico**
-   - Framework: spaCy (es_core_news_md)
-   - Ventajas: Rapidez, consistencia
-   - Limitaciones: Menor capacidad de abstracción
+            3. **Análisis Lingüístico**
+            - Framework: spaCy (es_core_news_md)
+            - Ventajas: Rapidez, consistencia
+            - Limitaciones: Menor capacidad de abstracción
 
-### 1.2 Métricas de Evaluación
-- Índice de diversidad de intereses: {citizen_metrics['interest_diversity']:.3f}
-- Correlación entre métodos:
-{self._format_method_correlations(citizen_metrics['method_correlations'])}
+            ### 1.2 Métricas de Evaluación
+            - Índice de diversidad de intereses: {citizen_metrics['interest_diversity']:.3f}
+            - Correlación entre métodos:
+            {self._format_method_correlations(citizen_metrics['method_correlations'])}
 
-## 2. Resultados
+            ## 2. Resultados
 
-### 2.1 Temas Principales de Interés Ciudadano
-{self._format_dominant_topics(citizen_metrics['dominant_topics'])}
+            ### 2.1 Temas Principales de Interés Ciudadano
+            {self._format_dominant_topics(citizen_metrics['dominant_topics'])}
 
-### 2.2 Análisis Comparativo de Métodos
-- Correlación media entre métodos: {np.mean(list(citizen_metrics['method_correlations'].values())):.3f}
-- Los métodos muestran {self._evaluate_method_agreement(citizen_metrics['method_correlations'])}
+            ### 2.2 Análisis Comparativo de Métodos
+            - Correlación media entre métodos: {np.mean(list(citizen_metrics['method_correlations'].values())):.3f}
+            - Los métodos muestran {self._evaluate_method_agreement(citizen_metrics['method_correlations'])}
 
-### 2.3 Interrelación de Temas
-{self._format_topic_relationships(topic_relationships)}
+            ### 2.3 Interrelación de Temas
+            {self._format_topic_relationships(topic_relationships)}
 
-## 3. Discusión
+            ## 3. Discusión
 
-### 3.1 Hallazgos Principales
-- **Patrones de Interés**: Los temas dominantes reflejan las preocupaciones actuales de la ciudadanía
-- **Eficacia de Métodos**: Cada método aporta perspectivas complementarias
-- **Interconexiones**: Se observan clusters temáticos significativos
+            ### 3.1 Hallazgos Principales
+            - **Patrones de Interés**: Los temas dominantes reflejan las preocupaciones actuales de la ciudadanía
+            - **Eficacia de Métodos**: Cada método aporta perspectivas complementarias
+            - **Interconexiones**: Se observan clusters temáticos significativos
 
-### 3.2 Implicaciones
-- Para el diseño de políticas públicas
-- Para la comunicación política
-- Para el desarrollo de sistemas de diálogo
+            ### 3.2 Implicaciones
+            - Para el diseño de políticas públicas
+            - Para la comunicación política
+            - Para el desarrollo de sistemas de diálogo
 
-### 3.3 Limitaciones
-- Sesgos potenciales en la muestra
-- Limitaciones técnicas de los métodos
-- Consideraciones éticas
+            ### 3.3 Limitaciones
+            - Sesgos potenciales en la muestra
+            - Limitaciones técnicas de los métodos
+            - Consideraciones éticas
 
-## 4. Conclusiones
-Este análisis proporciona una comprensión profunda de los intereses ciudadanos en el diálogo político,
-revelando patrones significativos en las preocupaciones de la ciudadanía y demostrando la
-complementariedad de diferentes enfoques analíticos.
+            ## 4. Conclusiones
+            Este análisis proporciona una comprensión profunda de los intereses ciudadanos en el diálogo político,
+            revelando patrones significativos en las preocupaciones de la ciudadanía y demostrando la
+            complementariedad de diferentes enfoques analíticos.
 
-## 5. Referencias Metodológicas
-1. OpenAI. (2024). text-embedding-3-small: Sistema de embeddings de nueva generación
-2. spaCy. (2024). Industrial-Strength Natural Language Processing
-3. Newman, M. E. J. (2010). Networks: An Introduction
-"""
+            ## 5. Referencias Metodológicas
+            1. OpenAI. (2024). text-embedding-3-small: Sistema de embeddings de nueva generación
+            2. spaCy. (2024). Industrial-Strength Natural Language Processing
+            3. Newman, M. E. J. (2010). Networks: An Introduction
+        """
         with open(f"{output_dir}/research_report.md", "w", encoding='utf-8') as f:
             f.write(report)
+        
+        return report
 
     def _format_method_correlations(self, correlations: Dict) -> str:
         """Formatea las correlaciones entre métodos."""
@@ -391,65 +436,67 @@ complementariedad de diferentes enfoques analíticos.
             for topic, score in top_topics
         ])
 
-    async def generate_complete_report(self,
-                                        start_date: Optional[datetime] = None,
-                                        end_date: Optional[datetime] = None,
-                                        output_dir: str = "analysis_results"):
-            """Genera un análisis completo con reportes en múltiples formatos."""
-            try:
-                # Realizar análisis
-                basic_stats = self.get_basic_statistics()
-                topic_analysis = await self.analytics_service.get_topic_distribution(start_date, end_date)
-                topic_relationships = self.analyze_topic_relationships(topic_analysis)
-                citizen_metrics = self.calculate_citizen_interest_metrics(topic_analysis)
-                
-                # Generar visualizaciones
-                self.generate_analysis_visualizations(
-                    topic_analysis,
-                    topic_relationships,
-                    output_dir
-                )
-                
-                # Preparar información de imágenes
-                images = [
-                    {
-                        'path': os.path.join(output_dir, 'method_comparison.png'),
-                        'description': 'Comparación de Métodos de Análisis'
-                    },
-                    {
-                        'path': os.path.join(output_dir, 'topic_distribution_by_method.png'),
-                        'description': 'Distribución de Temas por Método'
-                    },
-                    {
-                        'path': os.path.join(output_dir, 'topic_network.png'),
-                        'description': 'Red de Relaciones entre Temas'
-                    }
-                ]
-                
-                # Generar reportes en diferentes formatos
-                report_generator = ReportGenerator(output_dir)
-                
-                # Generar contenido markdown
-                markdown_content = self.generate_research_report(
-                    basic_stats,
-                    topic_analysis,
-                    topic_relationships,
-                    citizen_metrics,
-                    output_dir
-                )
-                
-                # Generar reportes en diferentes formatos
-                report_generator.generate_html_report(markdown_content, images)
-                report_generator.generate_latex_report(markdown_content, images)
-                
-                # Crear paquete de reporte
-                report_generator.create_report_package()
-                
-                logger.info("Reportes generados exitosamente")
-                
-            except Exception as e:
-                logger.error(f"Error generando reportes: {str(e)}")
-                raise
+    async def generate_complete_report(self, start_date: Optional[datetime] = None,
+                                    end_date: Optional[datetime] = None,
+                                    output_dir: str = "analysis_results"):
+        try:
+            # Asegúrate de que el directorio existe
+            os.makedirs(output_dir, exist_ok=True)
+            
+            # Realizar análisis
+            basic_stats = self.get_basic_statistics()
+            topic_analysis = await self.analytics_service.get_topic_distribution(start_date, end_date)
+            topic_relationships = self.analyze_topic_relationships(topic_analysis)
+            citizen_metrics = self.calculate_citizen_interest_metrics(topic_analysis)
+            
+            # Generar visualizaciones
+            self.generate_analysis_visualizations(
+                topic_analysis,
+                topic_relationships,
+                output_dir
+            )
+            
+            # Prepara la información de imágenes
+            images = [
+                {
+                    'path': os.path.join(output_dir, 'method_comparison.png'),
+                    'description': 'Comparación de Métodos de Análisis'
+                },
+                {
+                    'path': os.path.join(output_dir, 'topic_distribution_by_method.png'),
+                    'description': 'Distribución de Temas por Método'
+                },
+                {
+                    'path': os.path.join(output_dir, 'topic_network.png'),
+                    'description': 'Red de Relaciones entre Temas'
+                }
+            ]
+            
+            # Generar contenido markdown y asegurarte de que no es None
+            markdown_content = self.generate_research_report(
+                basic_stats,
+                topic_analysis,
+                topic_relationships,
+                citizen_metrics,
+                output_dir
+            )
+            
+            if markdown_content is None:
+                raise ValueError("El contenido markdown no puede ser None")
+            
+            # Generar reportes en diferentes formatos
+            report_generator = ReportGenerator(output_dir)
+            report_generator.generate_html_report(markdown_content, images)
+            report_generator.generate_latex_report(markdown_content, images)
+            
+            # Crear paquete de reporte
+            report_generator.create_report_package()
+            
+            logger.info("Reportes generados exitosamente")
+            
+        except Exception as e:
+            logger.error(f"Error generando reportes: {str(e)}")
+            raise
 
 async def main():
     try:
