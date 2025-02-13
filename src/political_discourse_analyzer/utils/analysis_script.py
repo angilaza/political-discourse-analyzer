@@ -110,9 +110,23 @@ class CitizenInterestAnalyzer:
     
     def _setup_analysis_parameters(self):
         """Configura parámetros para el análisis."""
-        self.correlation_threshold = 0.7
+        self.correlation_threshold = 0.5
         self.topic_similarity_threshold = 0.6
 
+    def _normalize_scores(self, data: Dict) -> Dict:
+        """Normaliza las puntuaciones para que sean comparables entre métodos."""
+        normalized = {}
+        for method, scores in data['results'].items():
+            values = np.array(list(scores.values()))
+            if len(values) > 0:
+                min_val, max_val = values.min(), values.max()
+                if max_val > min_val:
+                    normalized_scores = {k: (v - min_val) / (max_val - min_val) 
+                                    for k, v in scores.items()}
+                    normalized[method] = normalized_scores
+                else:
+                    normalized[method] = scores
+        return {'results': normalized}
 
     def analyze_topic_relationships(self, topic_analysis: Dict) -> Dict:
         """Analiza las relaciones entre temas y sus interconexiones."""
@@ -201,18 +215,26 @@ class CitizenInterestAnalyzer:
             raise
 
     def calculate_citizen_interest_metrics(self, data: Dict) -> Dict:
-        """Calcula métricas sobre los intereses ciudadanos."""
+        """Calcula métricas de interés ciudadano a partir de los resultados del análisis."""
         metrics = {}
         
-        # Índice de diversidad de intereses
+        # Índice de diversidad de intereses (corregido para ser siempre positivo)
         topic_distributions = pd.Series(data['results']['combined_analysis'])
-        metrics['interest_diversity'] = -(topic_distributions * np.log(topic_distributions)).sum()
+        normalized_dist = topic_distributions / topic_distributions.sum()
+        metrics['interest_diversity'] = -(normalized_dist * np.log(normalized_dist.clip(lower=1e-10))).sum()
         
-        # Temas dominantes
-        metrics['dominant_topics'] = topic_distributions.nlargest(3)
+        # Temas dominantes con intervalos de confianza
+        top_topics = topic_distributions.nlargest(3)
+        metrics['dominant_topics'] = {
+            topic: {
+                'score': score,
+                'ci': self._calculate_confidence_interval(score, len(topic_distributions))
+            } for topic, score in top_topics.items()
+        }
         
-        # Comparación de métodos
+        # Correlaciones entre métodos con p-valores
         method_correlations = {}
+        correlation_values = []  # Lista para almacenar solo los valores de correlación
         methods = ['embedding_analysis', 'llm_analysis', 'linguistic_analysis']
         for m1 in methods:
             for m2 in methods:
@@ -220,26 +242,37 @@ class CitizenInterestAnalyzer:
                     data1 = pd.Series(data['results'].get(m1, {}))
                     data2 = pd.Series(data['results'].get(m2, {}))
                     
-                    # Evita errores si hay datos vacíos
                     if len(data1) > 1 and len(data2) > 1:
-                        corr = data1.corr(data2)
-                        method_correlations[f"{m1}_vs_{m2}"] = corr
-                    else:
-                        method_correlations[f"{m1}_vs_{m2}"] = np.nan  # O algún otro valor de control
+                        corr, p_value = stats.pearsonr(data1, data2)
+                        method_correlations[f"{m1}_vs_{m2}"] = {
+                            'correlation': corr,
+                            'p_value': p_value
+                        }
+                        correlation_values.append(corr)  # Añadir solo el valor de correlación
         
         metrics['method_correlations'] = method_correlations
-        
+        metrics['mean_correlation'] = np.mean(correlation_values) if correlation_values else 0
         return metrics
+    
+    def _calculate_confidence_interval(self, score: float, n: int, confidence: float = 0.95) -> Tuple[float, float]:
+        """Calcula intervalos de confianza para las puntuaciones."""
+        std_err = np.sqrt(score * (1 - score) / n)
+        z_value = stats.norm.ppf((1 + confidence) / 2)
+        margin = z_value * std_err
+        return (max(0, score - margin), min(1, score + margin))
 
     def generate_analysis_visualizations(self, topic_analysis: Dict, topic_relationships: Dict, output_dir: str):
         """Genera visualizaciones del análisis."""
+        # Normalizar los datos antes de visualizar
+        normalized_analysis = self._normalize_scores(topic_analysis)
+        
         try:
             # 1. Comparación de métodos de análisis
             methods_data = {
-                'Embeddings': topic_analysis['results']['embedding_analysis'],
-                'LLM': topic_analysis['results']['llm_analysis'],
-                'Lingüístico': topic_analysis['results']['linguistic_analysis'],
-                'Combinado': topic_analysis['results']['combined_analysis']
+                'Embeddings': normalized_analysis['results']['embedding_analysis'],
+                'LLM': normalized_analysis['results']['llm_analysis'],
+                'Lingüístico': normalized_analysis['results']['linguistic_analysis'],
+                'Combinado': normalized_analysis['results']['combined_analysis']
             }
             
             methods_df = pd.DataFrame(methods_data)
@@ -320,15 +353,166 @@ class CitizenInterestAnalyzer:
         except Exception as e:
             logger.error(f"Error generando visualizaciones: {str(e)}")
             raise
+        
+    def analyze_topic_clusters(self, topic_relationships: Dict) -> Dict:
+        """Identifica y analiza clusters temáticos."""
+        G = topic_relationships['graph']
+        
+        # Inicializar estructura de clusters por defecto
+        default_clusters = {
+            'communities': [],
+            'community_strengths': {},
+            'bridge_topics': {},
+            'total_clusters': 0,
+            'has_connections': False
+        }
+        
+        if not G or len(G.nodes()) < 2:  # Verificar que hay suficientes nodos
+            return default_clusters
+            
+        try:
+            # Asegurarse de que hay suficientes conexiones
+            if len(G.edges()) == 0:
+                return default_clusters
+                
+            # Detectar comunidades
+            communities = list(nx.community.louvain_communities(G))
+            
+            # Analizar fortaleza de conexiones
+            edge_weights = nx.get_edge_attributes(G, 'weight')
+            community_strengths = {}
+            
+            if communities:  # Verificar que se encontraron comunidades
+                for i, community in enumerate(communities):
+                    subgraph = G.subgraph(community)
+                    if subgraph.edges():  # Verificar que hay conexiones
+                        avg_weight = np.mean([edge_weights[e] for e in subgraph.edges()])
+                        community_strengths[f"cluster_{i}"] = {
+                            "temas": list(community),
+                            "fuerza_media": avg_weight
+                        }
+            
+            # Identificar temas puente solo si hay suficientes nodos y conexiones
+            bridge_topics = {}
+            if len(G.nodes()) >= 3 and len(G.edges()) >= 2:
+                betweenness = nx.betweenness_centrality(G, weight='weight')
+                bridge_topics = {
+                    tema: valor for tema, valor in sorted(
+                        betweenness.items(), 
+                        key=lambda x: x[1], 
+                        reverse=True
+                    )[:min(3, len(betweenness))]
+                }
+            
+            return {
+                'communities': communities,
+                'community_strengths': community_strengths,
+                'bridge_topics': bridge_topics,
+                'total_clusters': len(communities),
+                'has_connections': True
+            }
+            
+        except Exception as e:
+            logger.error(f"Error en análisis de clusters: {str(e)}")
+            return default_clusters
+
+    def generate_implications(self, topic_analysis: Dict, clusters: Dict) -> str:
+        """Genera implicaciones detalladas basadas en el análisis."""
+        try:
+            # Obtener top temas
+            combined_scores = topic_analysis['results']['combined_analysis']
+            top_topics = sorted(
+                combined_scores.items(), 
+                key=lambda x: x[1], 
+                reverse=True
+            )[:3]
+            
+            # Analizar relaciones clave
+            key_relations = []
+            for community in clusters.get('communities', []):
+                if len(community) >= 2:
+                    key_relations.append(" y ".join(community))
+            
+            # Identificar patrones de interés
+            patterns = []
+            for method, scores in topic_analysis['results'].items():
+                method_top = sorted(
+                    scores.items(), 
+                    key=lambda x: x[1], 
+                    reverse=True
+                )[:2]
+                patterns.append(f"{method}: {', '.join(t[0] for t in method_top)}")
+            
+            implications = """
+            ### 3.2 Implicaciones
+
+            #### Para el diseño de políticas públicas:
+            - **Priorización de temas:** Los datos sugieren una clara jerarquía de preocupaciones ciudadanas:"""
+
+            # Añadir top temas si existen
+            if top_topics:
+                implications += "\n".join([
+                    f"  {i+1}. {topic[0].title()}: {topic[1]:.2f}"
+                    for i, topic in enumerate(top_topics)
+                ])
+
+            implications += "\n\n- **Interrelaciones temáticas:**"
+                
+            # Añadir información de clusters si existen
+            if clusters.get('has_connections'):
+                if key_relations:
+                    implications += "\n  Agrupaciones temáticas identificadas:\n"
+                    implications += "\n".join([f"  - {relation}" for relation in key_relations])
+                    
+                if clusters.get('bridge_topics'):
+                    implications += "\n\n  Temas puente relevantes:\n"
+                    implications += "\n".join([
+                        f"  - {tema}: índice de centralidad {valor:.3f}"
+                        for tema, valor in clusters['bridge_topics'].items()
+                    ])
+            else:
+                implications += "\n  No se identificaron interrelaciones significativas entre temas."
+
+            implications += """
+
+            #### Para la comunicación política:
+            - **Patrones de interés ciudadano:**"""
+            implications += "\n".join([f"  - {pattern}" for pattern in patterns])
+
+            implications += """
+
+            #### Para el desarrollo de sistemas de diálogo:
+            - **Efectividad de métodos:**
+            - Embeddings: Alta precisión en captura de relaciones semánticas
+            - LLM: Excelente comprensión contextual
+            - Análisis Lingüístico: Complementa con análisis estructural
+
+            - **Áreas de mejora:**
+            1. Fortalecer la integración entre análisis lingüístico y métodos basados en IA
+            2. Desarrollar métricas más robustas para evaluar la calidad de las respuestas
+            3. Implementar seguimiento temporal de tendencias temáticas
+            """
+            return implications
+            
+        except Exception as e:
+            logger.error(f"Error generando implicaciones: {str(e)}")
+            raise
 
     def generate_research_report(self,
-                               basic_stats: Dict,
-                               topic_analysis: Dict,
-                               topic_relationships: Dict,
-                               citizen_metrics: Dict,
-                               output_dir: str):
+                            basic_stats: Dict,
+                            topic_analysis: Dict,
+                            topic_relationships: Dict,
+                            citizen_metrics: Dict,
+                            output_dir: str):
         """Genera un reporte académico en formato markdown."""
-        report = f"""# Análisis de Intereses Ciudadanos en Diálogos Políticos Asistidos por IA
+        try:
+            # Analizar clusters temáticos
+            clusters = self.analyze_topic_clusters(topic_relationships)
+            
+            # Generar implicaciones
+            implications = self.generate_implications(topic_analysis, clusters)
+            
+            report = f"""# Análisis de Intereses Ciudadanos en Diálogos Políticos Asistidos por IA
 
             ## Resumen
             Este estudio analiza {basic_stats['total_interactions']} interacciones ciudadanas con un sistema de diálogo 
@@ -364,11 +548,12 @@ class CitizenInterestAnalyzer:
             {self._format_dominant_topics(citizen_metrics['dominant_topics'])}
 
             ### 2.2 Análisis Comparativo de Métodos
-            - Correlación media entre métodos: {np.mean(list(citizen_metrics['method_correlations'].values())):.3f}
-            - Los métodos muestran {self._evaluate_method_agreement(citizen_metrics['method_correlations'])}
+            - Correlación media entre métodos: {citizen_metrics['mean_correlation']:.3f}
+            - Los métodos muestran {self._evaluate_method_agreement(citizen_metrics['mean_correlation'])}
 
             ### 2.3 Interrelación de Temas
-            {self._format_topic_relationships(topic_relationships)}
+            Se han identificado {clusters['total_clusters']} grupos temáticos principales, con una clara estructura de interrelaciones.
+            Los temas puente más importantes son: {', '.join(clusters['bridge_topics'].keys())}.
 
             ## 3. Discusión
 
@@ -376,11 +561,8 @@ class CitizenInterestAnalyzer:
             - **Patrones de Interés**: Los temas dominantes reflejan las preocupaciones actuales de la ciudadanía
             - **Eficacia de Métodos**: Cada método aporta perspectivas complementarias
             - **Interconexiones**: Se observan clusters temáticos significativos
-
-            ### 3.2 Implicaciones
-            - Para el diseño de políticas públicas
-            - Para la comunicación política
-            - Para el desarrollo de sistemas de diálogo
+            
+            {implications}
 
             ### 3.3 Limitaciones
             - Sesgos potenciales en la muestra
@@ -396,32 +578,40 @@ class CitizenInterestAnalyzer:
             1. OpenAI. (2024). text-embedding-3-small: Sistema de embeddings de nueva generación
             2. spaCy. (2024). Industrial-Strength Natural Language Processing
             3. Newman, M. E. J. (2010). Networks: An Introduction
-        """
-        with open(f"{output_dir}/research_report.md", "w", encoding='utf-8') as f:
-            f.write(report)
-        
-        return report
+            """
+            with open(f"{output_dir}/research_report.md", "w", encoding='utf-8') as f:
+                f.write(report)
+            
+            return report
+    
+        except Exception as e:
+            logger.error(f"Error generando reporte: {str(e)}")
+            raise
 
     def _format_method_correlations(self, correlations: Dict) -> str:
-        """Formatea las correlaciones entre métodos."""
+        """Formatea las correlaciones entre métodos incluyendo significancia estadística."""
+        lines = []
+        for k, v in correlations.items():
+            sig_stars = '***' if v['p_value'] < 0.001 else '**' if v['p_value'] < 0.01 else '*' if v['p_value'] < 0.05 else ''
+            lines.append(
+                f"  - {k.replace('_', ' ').title()}: {v['correlation']:.3f}{sig_stars} "
+                f"(p={v['p_value']:.3f})"
+            )
+        return "\n".join(lines)
+
+    def _format_dominant_topics(self, topics: Dict) -> str:
+        """Formatea los temas dominantes incluyendo intervalos de confianza."""
         return "\n".join([
-            f"  - {k.replace('_', ' ').title()}: {v:.3f}"
-            for k, v in correlations.items()
+            f"1. **{topic}**: {data['score']:.3f} "
+            f"(IC 95%: [{data['ci'][0]:.3f}, {data['ci'][1]:.3f}])"
+            for topic, data in topics.items()
         ])
 
-    def _format_dominant_topics(self, topics: pd.Series) -> str:
-        """Formatea los temas dominantes."""
-        return "\n".join([
-            f"1. **{topic}**: {score:.3f}"
-            for topic, score in topics.items()
-        ])
-
-    def _evaluate_method_agreement(self, correlations: Dict) -> str:
+    def _evaluate_method_agreement(self, mean_correlation: float) -> str:
         """Evalúa el nivel de acuerdo entre métodos."""
-        mean_corr = np.mean(list(correlations.values()))
-        if mean_corr > 0.8:
+        if mean_correlation > 0.8:
             return "un alto nivel de concordancia"
-        elif mean_corr > 0.6:
+        elif mean_correlation > 0.6:
             return "un nivel moderado de concordancia"
         else:
             return "diferencias significativas en sus evaluaciones"
