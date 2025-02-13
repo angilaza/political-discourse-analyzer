@@ -94,7 +94,7 @@ class AnalyticsService:
             return [(category, 0.0) for category in self.categories]
 
     async def analyze_topic_with_llm(self, query: str) -> Dict[str, float]:
-        """Análisis mediante GPT-4."""
+        """Análisis mediante GPT-4-turbo."""
         try:
             prompt = f"""Analiza la siguiente consulta sobre política y asigna porcentajes de relevancia
             para cada categoría (la suma debe ser 100%). Las categorías son: {list(self.categories.keys())}.
@@ -105,7 +105,7 @@ class AnalyticsService:
             Por ejemplo: {{"economía": 60, "sanidad": 40}}"""
 
             response = self.client.chat.completions.create(
-                model="gpt-4",
+                model="gpt-4-turbo",
                 messages=[
                     {"role": "system", "content": "Eres un analista experto en política española. Responde siempre en formato JSON."},
                     {"role": "user", "content": prompt}
@@ -116,7 +116,7 @@ class AnalyticsService:
             try:
                 return json.loads(response.choices[0].message.content)
             except json.JSONDecodeError as e:
-                logger.error(f"Error decodificando JSON de GPT-4: {str(e)}")
+                logger.error(f"Error decodificando JSON de GPT-4-turbo: {str(e)}")
                 logger.error(f"Contenido recibido: {response.choices[0].message.content}")
                 return {category: 0.0 for category in self.categories}
 

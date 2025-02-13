@@ -169,10 +169,8 @@ class DatabaseService:
                     for interaction in interactions
                 ]
                 
-    async def get_analytics(self) -> Dict:
-        """
-        Obtiene estadísticas de uso de la plataforma.
-        """
+    def get_analytics(self) -> Dict:
+        """Obtiene estadísticas de uso de la plataforma."""
         try:
             with self.SessionLocal() as db:
                 # Contar total de conversaciones
@@ -209,7 +207,7 @@ class DatabaseService:
                     "latest_interaction_time": latest_interaction.timestamp.isoformat() if latest_interaction else None,
                     "database_status": "connected"
                 }
-                
+                    
         except Exception as e:
             logger.error(f"Error getting analytics: {str(e)}", exc_info=True)
             return {
