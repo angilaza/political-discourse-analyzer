@@ -114,18 +114,25 @@ class CitizenInterestAnalyzer:
         self.topic_similarity_threshold = 0.6
 
     def _normalize_scores(self, data: Dict) -> Dict:
-        """Normaliza las puntuaciones para que sean comparables entre métodos."""
+        """Normaliza las puntuaciones para tener todas en escala 0-1."""
         normalized = {}
+        
+        # Obtener todos los valores para encontrar min/max globales
+        all_values = []
         for method, scores in data['results'].items():
-            values = np.array(list(scores.values()))
-            if len(values) > 0:
-                min_val, max_val = values.min(), values.max()
-                if max_val > min_val:
-                    normalized_scores = {k: (v - min_val) / (max_val - min_val) 
-                                    for k, v in scores.items()}
-                    normalized[method] = normalized_scores
-                else:
-                    normalized[method] = scores
+            all_values.extend(list(scores.values()))
+        
+        # Calcular min/max globales
+        global_min = min(all_values)
+        global_max = max(all_values)
+        
+        # Normalizar cada método usando los valores globales
+        for method, scores in data['results'].items():
+            normalized[method] = {
+                k: (v - global_min) / (global_max - global_min) 
+                for k, v in scores.items()
+            }
+        
         return {'results': normalized}
 
     def analyze_topic_relationships(self, topic_analysis: Dict) -> Dict:
@@ -262,12 +269,12 @@ class CitizenInterestAnalyzer:
         return (max(0, score - margin), min(1, score + margin))
 
     def generate_analysis_visualizations(self, topic_analysis: Dict, topic_relationships: Dict, output_dir: str):
-        """Genera visualizaciones del análisis."""
-        # Normalizar los datos antes de visualizar
+        """Genera visualizaciones con escalas normalizadas."""
+        # Normalizar los datos
         normalized_analysis = self._normalize_scores(topic_analysis)
         
         try:
-            # 1. Comparación de métodos de análisis
+            # Crear DataFrame con todos los métodos
             methods_data = {
                 'Embeddings': normalized_analysis['results']['embedding_analysis'],
                 'LLM': normalized_analysis['results']['llm_analysis'],
@@ -277,11 +284,14 @@ class CitizenInterestAnalyzer:
             
             methods_df = pd.DataFrame(methods_data)
             
-            plt.figure(figsize=(15, 10))
+            # 1. Matriz de correlación entre métodos
+            plt.figure(figsize=(10, 8))
             sns.heatmap(methods_df.corr(), 
                     annot=True, 
                     cmap='RdYlBu_r',
                     center=0,
+                    vmin=-1,
+                    vmax=1,
                     square=True)
             plt.title('Correlación entre Métodos de Análisis')
             plt.tight_layout()
@@ -289,7 +299,7 @@ class CitizenInterestAnalyzer:
             plt.close()
 
             # 2. Distribución de temas por método
-            fig, axes = plt.subplots(2, 2, figsize=(20, 15))
+            fig, axes = plt.subplots(2, 2, figsize=(15, 12))
             methods = {
                 (0,0): ('embedding_analysis', 'Análisis por Embeddings'),
                 (0,1): ('llm_analysis', 'Análisis por LLM'),
@@ -298,57 +308,31 @@ class CitizenInterestAnalyzer:
             }
             
             for pos, (method, title) in methods.items():
-                # Convertir datos a DataFrame en el formato correcto
                 data = pd.DataFrame.from_dict(
-                    topic_analysis['results'][method], 
+                    normalized_analysis['results'][method], 
                     orient='index',
                     columns=['score']
                 ).reset_index()
-                data.columns = ['category', 'score']  # Renombrar columnas
+                data.columns = ['category', 'score']
                 
-                # Crear el gráfico de barras
+                # Establecer límites consistentes para todos los gráficos
                 sns.barplot(
                     data=data,
                     x='score',
                     y='category',
                     ax=axes[pos[0]][pos[1]],
-                    hue='category',
-                    legend=False, 
                     palette='viridis'
                 )
                 axes[pos[0]][pos[1]].set_title(title)
-                axes[pos[0]][pos[1]].set_xlabel('Puntuación')
-                
+                axes[pos[0]][pos[1]].set_xlabel('Puntuación Normalizada')
+                # Establecer límites fijos para el eje x
+                axes[pos[0]][pos[1]].set_xlim(0, 1)
+            
             plt.tight_layout()
             plt.savefig(f"{output_dir}/topic_distribution_by_method.png", dpi=300)
             plt.close()
-
-            # 3. Red de relaciones entre temas
-            plt.figure(figsize=(15, 15))
-            G = topic_relationships['graph']
-            if len(G.nodes()) > 0:
-                pos = nx.spring_layout(G, k=1, iterations=50)
-                
-                nx.draw_networkx_nodes(G, pos, 
-                                    node_color='lightblue',
-                                    node_size=2000)
-                
-                nx.draw_networkx_labels(G, pos, font_size=10)
-                
-                nx.draw_networkx_edges(G, pos,
-                                    width=[G[u][v]['weight'] * 2 for (u, v) in G.edges()],
-                                    alpha=0.5)
-            else:
-                plt.text(0.5, 0.5, 'No hay relaciones significativas entre temas',
-                        horizontalalignment='center',
-                        verticalalignment='center')
             
-            plt.title('Red de Relaciones entre Temas de Interés Ciudadano')
-            plt.axis('off')
-            plt.savefig(f"{output_dir}/topic_network.png", dpi=300, bbox_inches='tight')
-            plt.close()
-            
-            logger.info("Visualizaciones generadas correctamente")
+            logger.info("Visualizaciones generadas correctamente con escalas normalizadas")
             
         except Exception as e:
             logger.error(f"Error generando visualizaciones: {str(e)}")

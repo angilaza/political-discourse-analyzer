@@ -209,15 +209,14 @@ political-discourse-analyzer/
 │       ├── models/        # Modelos de datos
 │       ├── services/      # Servicios principales
 │       │   ├── assistant_service.py  # Integración con OpenAI
-│       │   └── database_service.py   # Gestión de BD
+│       │   ├── database_service.py   # Gestión de BD
+│       │   └── analytics_service.py  # Servicio de análisis
 │       └── utils/         # Utilidades
+│           ├── analysis_script.py    # Script de análisis
 │           ├── db_management.py      # Gestión de BD
-│           └── document_checker.py   # Verificación de documentos
+│           └── report_generator.py   # Generación de informes
 ├── frontend/        # Aplicación React
 └── tests/          # Tests del sistema
-├── Dockerfile      # Configuración de contenedor
-├── railway.toml    # Configuración de Railway
-└── .dockerignore   # Exclusiones para Docker
 ```
 
 ## 🌐 API Endpoints
