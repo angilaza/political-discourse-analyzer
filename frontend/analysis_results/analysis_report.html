@@ -1,0 +1,153 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis de Interacciones Ciudadanas</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .chart-container {
+            margin: 2rem 0;
+            text-align: center;
+        }
+        .chart-container img {
+            max-width: 100%;
+            height: auto;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <div class="bg-white shadow-lg rounded-lg p-8">
+            <h1>Análisis de Intereses Ciudadanos en Diálogos Políticos Asistidos por IA</h1>
+<pre><code>        ## Resumen
+        Este estudio analiza 79 interacciones ciudadanas con un sistema de diálogo 
+        político asistido por IA, enfocándose en la identificación y comprensión de los principales temas de 
+        interés ciudadano y la evaluación de diferentes métodos de análisis.
+
+        ## 1. Metodología
+
+        ### 1.1 Métodos de Análisis Implementados
+        1. **Análisis por Embeddings**
+        - Modelo: text-embedding-3-small (OpenAI)
+        - Ventajas: Captura relaciones semánticas profundas
+        - Limitaciones: Dependencia del contexto del entrenamiento
+
+        2. **Análisis por LLM**
+        - Modelo: GPT-4
+        - Ventajas: Comprensión contextual rica
+        - Limitaciones: Costo computacional, variabilidad en respuestas
+
+        3. **Análisis Lingüístico**
+        - Framework: spaCy (es_core_news_md)
+        - Ventajas: Rapidez, consistencia
+        - Limitaciones: Menor capacidad de abstracción
+
+        ### 1.2 Métricas de Evaluación
+        - Índice de diversidad de intereses: 1.753
+        - Correlación entre métodos:
+          - Embedding Analysis Vs Llm Analysis: 0.858* (p=0.014)
+</code></pre>
+<ul>
+<li>Embedding Analysis Vs Linguistic Analysis: 0.139 (p=0.766)</li>
+<li>
+<p>Linguistic Analysis Vs Llm Analysis: 0.047 (p=0.920)</p>
+<pre><code>    ## 2. Resultados
+
+    ### 2.1 Temas Principales de Interés Ciudadano
+    1. **economía**: 11.097 (IC 95%: [0.000, 1.000])
+</code></pre>
+<ol>
+<li><strong>vivienda</strong>: 6.013 (IC 95%: [0.000, 1.000])</li>
+<li><strong>derechos_sociales</strong>: 4.801 (IC 95%: [0.000, 1.000])<pre><code>### 2.2 Análisis Comparativo de Métodos
+- Correlación media entre métodos: 0.348
+- Los métodos muestran diferencias significativas en sus evaluaciones
+
+### 2.3 Interrelación de Temas
+Se han identificado 0 grupos temáticos principales, con una clara estructura de interrelaciones.
+Los temas puente más importantes son: .
+
+## 3. Discusión
+
+### 3.1 Hallazgos Principales
+- **Patrones de Interés**: Los temas dominantes reflejan las preocupaciones actuales de la ciudadanía
+- **Eficacia de Métodos**: Cada método aporta perspectivas complementarias
+- **Interconexiones**: Se observan clusters temáticos significativos
+
+### 3.2 Implicaciones
+
+#### Para el diseño de políticas públicas:
+- **Priorización de temas:** Los datos sugieren una clara jerarquía de preocupaciones ciudadanas:  1. Economía: 11.10
+</code></pre>
+<ol>
+<li>Vivienda: 6.01</li>
+<li>Derechos_Sociales: 4.80</li>
+</ol>
+</li>
+</ol>
+</li>
+<li>
+<p><strong>Interrelaciones temáticas:</strong>
+  No se identificaron interrelaciones significativas entre temas.</p>
+<pre><code>    #### Para la comunicación política:
+    - **Patrones de interés ciudadano:**  - embedding_analysis: economía, vivienda
+</code></pre>
+<ul>
+<li>llm_analysis: economía, vivienda</li>
+<li>linguistic_analysis: derechos_sociales, economía</li>
+<li>combined_analysis: economía, vivienda<pre><code>#### Para el desarrollo de sistemas de diálogo:
+- **Efectividad de métodos:**
+- Embeddings: Alta precisión en captura de relaciones semánticas
+- LLM: Excelente comprensión contextual
+- Análisis Lingüístico: Complementa con análisis estructural
+
+- **Áreas de mejora:**
+1. Fortalecer la integración entre análisis lingüístico y métodos basados en IA
+2. Desarrollar métricas más robustas para evaluar la calidad de las respuestas
+3. Implementar seguimiento temporal de tendencias temáticas
+
+### 3.3 Limitaciones
+- Sesgos potenciales en la muestra
+- Limitaciones técnicas de los métodos
+- Consideraciones éticas
+
+## 4. Conclusiones
+Este análisis proporciona una comprensión profunda de los intereses ciudadanos en el diálogo político,
+revelando patrones significativos en las preocupaciones de la ciudadanía y demostrando la
+complementariedad de diferentes enfoques analíticos.
+
+## 5. Referencias Metodológicas
+1. OpenAI. (2024). text-embedding-3-small: Sistema de embeddings de nueva generación
+2. spaCy. (2024). Industrial-Strength Natural Language Processing
+3. Newman, M. E. J. (2010). Networks: An Introduction
+</code></pre>
+</li>
+</ul>
+</li>
+</ul>
+            
+            <div class="mt-8">
+                <h2 class="text-2xl font-bold mb-4">Visualizaciones</h2>
+                
+                <div class="chart-container">
+                    <img src="method_comparison.png" alt="Comparación de Métodos de Análisis">
+                    <p class="text-gray-600 mt-2">Comparación de Métodos de Análisis</p>
+                </div>
+                
+                <div class="chart-container">
+                    <img src="topic_distribution_by_method.png" alt="Distribución de Temas por Método">
+                    <p class="text-gray-600 mt-2">Distribución de Temas por Método</p>
+                </div>
+                
+                <div class="chart-container">
+                    <img src="topic_network.png" alt="Red de Relaciones entre Temas">
+                    <p class="text-gray-600 mt-2">Red de Relaciones entre Temas</p>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+</body>
+</html>

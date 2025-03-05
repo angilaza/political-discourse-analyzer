@@ -42,6 +42,3 @@ data/db/*
 
 # Logs
 *.log
-
-# Analysis
-analysis_results/
